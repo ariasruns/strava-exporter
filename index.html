@@ -114,7 +114,7 @@
     <div id="tab-volume" class="card"><h2>Weekly Running Volume</h2><div class="chart-wrap"><canvas id="chart-volume"></canvas></div></div>
     <div id="tab-pace" class="card hidden"><h2>Pace & Heart Rate Trends</h2><div class="chart-wrap"><canvas id="chart-pace"></canvas></div><div class="alert-amber"><strong>⚠ Easy Run HR Target:</strong> 136–151 bpm (Zone 2). Above 151 on easy days = too hard.</div></div>
     <div id="tab-plan" class="card hidden"><h2>11-Week Plan — Target vs Actual</h2><div id="plan-bars"></div><div style="display:flex;gap:1rem;margin-top:0.75rem;font-size:0.7rem;color:#64748B;flex-wrap:wrap"><span>▬ ▬ Target</span><span style="color:#22C55E">■ On track</span><span style="color:#F59E0B">■ Under</span></div></div>
-    <div id="tab-runs" class="card hidden"><h2>Recent Runs</h2><div style="overflow-x:auto"><table class="run-table"><thead><tr><th>Date</th><th>Run</th><th class="right">Dist</th><th class="right">Pace</th><th class="center">HR</th><th class="center">Zone</th><th class="right">Elev</th></tr></thead><tbody id="run-tbody"></tbody></table></div></div>
+    <div id="tab-runs" class="card hidden"><h2>Activity Log — Last 21 Days</h2><div style="overflow-x:auto"><table class="run-table"><thead><tr><th>Date</th><th>Run</th><th class="right">Dist</th><th class="right">Pace</th><th class="center">HR</th><th class="center">Zone</th><th class="right">Elev</th></tr></thead><tbody id="run-tbody"></tbody></table></div></div>
     <div id="tab-upcoming" class="card hidden"><h2>Upcoming — Next 2 Weeks</h2><div id="upcoming-content"></div></div>
     <div class="footer" id="footer"></div>
   </div>
@@ -140,12 +140,14 @@ const PLAN=[
 const PC={Base:'#34D399',Deload:'#A5B4FC',China:'#FCD34D',Return:'#93C5FD',Build:'#34D399',Peak:'#F97316',Race:'#FCA5A5'};
 let S={secret:'',accessToken:null,refreshToken:null,expiresAt:null,athlete:null,activities:[],gymDates:[]},charts={},currentTab='volume';
 
+
+function lds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fd(ds){const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MO[d.getMonth()]}
 function dn(ds){return DN[new Date(ds+'T00:00:00').getDay()]}
 function isWe(ds){const d=new Date(ds+'T00:00:00').getDay();return d===0||d===6}
 function fp(p){if(!p||p<=0)return'—';const m=Math.floor(p),s=Math.round((p-m)*60);return m+':'+(s<10?'0':'')+s}
 function hz(hr){if(!hr||hr<=0)return{z:'—',c:'#4B5563'};if(hr<136)return{z:'Z1',c:'#22C55E'};if(hr<=151)return{z:'Z2',c:'#15803D'};if(hr<=168)return{z:'Z3',c:'#EAB308'};if(hr<=185)return{z:'Z4',c:'#F97316'};return{z:'Z5',c:'#EF4444'}}
-function getDateForDay(weekStart,dayNum){const ws=new Date(weekStart+'T00:00:00');const off=dayNum===0?6:(dayNum-1);const dd=new Date(ws);dd.setDate(ws.getDate()+off);return dd.toISOString().slice(0,10)}
+function getDateForDay(weekStart,dayNum){const ws=new Date(weekStart+'T00:00:00');const off=dayNum===0?6:(dayNum-1);const dd=new Date(ws);dd.setDate(ws.getDate()+off);return dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0')}
 
 window.addEventListener('load',()=>{
   const saved=localStorage.getItem('td_tokens'),secret=localStorage.getItem('td_secret'),params=new URLSearchParams(window.location.search),code=params.get('code');
@@ -153,7 +155,7 @@ window.addEventListener('load',()=>{
   if(code&&secret){S.secret=secret;window.history.replaceState({},'',REDIRECT_URI);showDash();exchangeToken(code)}
   else if(saved&&secret){try{Object.assign(S,{secret,...JSON.parse(saved)});showDash();const c=localStorage.getItem('td_activities'),g=localStorage.getItem('td_gym');if(c)S.activities=JSON.parse(c);if(g)S.gymDates=JSON.parse(g);renderAll();fetchActivities()}catch(e){console.error(e)}}
 });
-function buildTabs(){document.getElementById('tabs-bar').innerHTML=[['volume','Volume'],['pace','Pace & HR'],['plan','Plan vs Actual'],['runs','Recent Runs'],['upcoming','Upcoming']].map(([k,l])=>`<button class="tab ${k===currentTab?'active':''}" onclick="switchTab('${k}',this)">${l}</button>`).join('')}
+function buildTabs(){document.getElementById('tabs-bar').innerHTML=[['volume','Volume'],['pace','Pace & HR'],['plan','Plan vs Actual'],['runs','Activity Log'],['upcoming','Upcoming']].map(([k,l])=>`<button class="tab ${k===currentTab?'active':''}" onclick="switchTab('${k}',this)">${l}</button>`).join('')}
 function switchTab(n,el){currentTab=n;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');['volume','pace','plan','runs','upcoming'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==n));if(charts[n])setTimeout(()=>charts[n].resize(),50)}
 function startAuth(){const s=document.getElementById('secret-input').value.trim();if(!s)return;S.secret=s;localStorage.setItem('td_secret',s);window.location.href=`https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=read,activity:read_all&approval_prompt=auto`}
 async function exchangeToken(code){syncMsg('Connecting...');try{const r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,client_secret:S.secret,code,grant_type:'authorization_code'})});const d=await r.json();if(d.access_token){S.accessToken=d.access_token;S.refreshToken=d.refresh_token;S.expiresAt=d.expires_at;S.athlete=d.athlete;saveTokens();fetchActivities()}else{document.getElementById('auth-error').innerHTML=`<div class="status-error">${d.message||'Check Client Secret'}</div>`;showAuth()}}catch(e){document.getElementById('auth-error').innerHTML=`<div class="status-error">${e.message}</div>`;showAuth()}}
@@ -174,14 +176,58 @@ function renderRaces(){const today=new Date();document.getElementById('race-stri
 function renderStats(){const w=gW(S.activities),l4=w.slice(-4);const ak=l4.length?(l4.reduce((s,w)=>s+w.km,0)/l4.length).toFixed(1):'—';const ar=l4.length?(l4.reduce((s,w)=>s+w.count,0)/l4.length).toFixed(1):'—';const hr=S.activities.slice(-20).filter(a=>a.avg_hr);const ah=hr.length?Math.round(hr.reduce((s,a)=>s+a.avg_hr,0)/hr.length):null;const yt=S.activities.filter(a=>a.date>='2026-01-01').reduce((s,a)=>s+a.dist_km,0).toFixed(0);const hc=ah&&ah>151?'amber':'green',hs=ah?(ah>151?'Z3 ⚠ Too high':'Z2 ✓'):'';document.getElementById('stats-grid').innerHTML=`<div class="stat"><div class="stat-label">Avg Weekly</div><div class="stat-value blue">${ak}km</div><div class="stat-sub">Last 4 weeks</div></div><div class="stat"><div class="stat-label">Runs/Week</div><div class="stat-value green">${ar}</div><div class="stat-sub">Last 4 weeks</div></div><div class="stat"><div class="stat-label">Avg Run HR</div><div class="stat-value ${hc}">${ah||'—'}${ah?' bpm':''}</div><div class="stat-sub">${hs}</div></div><div class="stat"><div class="stat-label">2026 Total</div><div class="stat-value purple">${yt}km</div><div class="stat-sub">Year to date</div></div>`}
 function renderVolume(){const w=gW(S.activities).slice(-16);if(charts.volume)charts.volume.destroy();charts.volume=new Chart(document.getElementById('chart-volume'),{type:'bar',data:{labels:w.map(x=>fd(x.key)),datasets:[{label:'Total km',data:w.map(x=>x.km),backgroundColor:'#3B82F6',borderRadius:4},{label:'Longest',data:w.map(x=>x.longest),backgroundColor:'#1E3A5F',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94A3B8',font:{size:11}}}},scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{color:'#1E293B'}},y:{ticks:{color:'#64748B',font:{size:10},callback:v=>v+'km'},grid:{color:'#1E293B'}}}}})}
 function renderPace(){const r=S.activities.slice(-20);if(charts.pace)charts.pace.destroy();charts.pace=new Chart(document.getElementById('chart-pace'),{type:'line',data:{labels:r.map(x=>fd(x.date)),datasets:[{label:'Pace',data:r.map(x=>x.pace),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',fill:true,tension:0.3,yAxisID:'y',pointRadius:4,pointBackgroundColor:'#3B82F6'},{label:'Avg HR',data:r.map(x=>x.avg_hr),borderColor:'#EF4444',fill:false,tension:0.3,yAxisID:'y1',pointRadius:4,pointBackgroundColor:'#EF4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94A3B8',font:{size:11}}}},scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{color:'#1E293B'}},y:{position:'left',reverse:true,min:4,max:7,ticks:{color:'#64748B',font:{size:10},callback:v=>{const m=Math.floor(v),s=Math.round((v-m)*60);return m+':'+(s<10?'0':'')+s}},grid:{color:'#1E293B'},title:{display:true,text:'Pace',color:'#64748B'}},y1:{position:'right',min:100,max:210,ticks:{color:'#64748B',font:{size:10}},grid:{drawOnChartArea:false},title:{display:true,text:'HR',color:'#64748B'}}}},plugins:[{id:'z2',afterDraw(c){const y1=c.scales.y1,yp=y1.getPixelForValue(151),ctx=c.ctx;ctx.save();ctx.beginPath();ctx.setLineDash([6,4]);ctx.strokeStyle='#22C55E';ctx.lineWidth=1.5;ctx.moveTo(c.chartArea.left,yp);ctx.lineTo(c.chartArea.right,yp);ctx.stroke();ctx.font='10px Inter';ctx.fillStyle='#22C55E';ctx.fillText('Z2 ceiling (151)',c.chartArea.right-90,yp-6);ctx.restore()}}]})}
-function renderPlan(){const mx=60,today=new Date();document.getElementById('plan-bars').innerHTML=PLAN.map(p=>{const we=new Date(p.start);we.setDate(we.getDate()+6);const act=S.activities.filter(a=>a.date>=p.start&&a.date<=we.toISOString().slice(0,10)).reduce((s,a)=>s+a.dist_km,0);const ar=Math.round(act*10)/10,tp=(p.target/mx)*100,ap=Math.min((act/mx)*100,100);const col=act>=p.target*0.9?'#22C55E':act>0?'#F59E0B':'#334155';const ws=new Date(p.start),isCur=today>=ws&&today<=we;return`<div class="plan-row" style="${isCur?'background:rgba(59,130,246,0.08);border-radius:6px;padding:0.5rem;margin:0 -0.5rem':''}"><div class="plan-week" style="color:${isCur?'#F1F5F9':'#94A3B8'}">${p.wk} <span style="font-size:0.6rem;color:${PC[p.phase]||'#64748B'}">${p.phase}</span></div><div class="plan-bar-wrap"><div class="plan-bar-target" style="width:${tp}%"></div><div class="plan-bar-actual" style="width:${ap}%;background:${col}"></div></div><div class="plan-nums">${ar>0?ar+'km':''} <span style="color:#475569">/ ${p.target}km</span></div></div>`}).join('')}
-function renderRuns(){const recent=S.activities.slice(-20).reverse();document.getElementById('run-tbody').innerHTML=recent.map(r=>{const z=hz(r.avg_hr);const we=isWe(r.date);const gym=S.gymDates.includes(r.date);return`<tr class="${we?'weekend':''}"><td><span class="day-badge ${we?'weekend':'weekday'}">${dn(r.date)}</span>${fd(r.date)}</td><td style="font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}${gym?'<span class="gym-badge" title="Gym session">🏋️</span>':''}</td><td class="right" style="font-weight:700">${r.dist_km}km</td><td class="right">${fp(r.pace)}/km</td><td class="center">${r.avg_hr||'—'}</td><td class="center"><span class="zone-badge" style="background:${z.c}">${z.z}</span></td><td class="right" style="color:#64748B">${r.elevation?'↑'+r.elevation+'m':'—'}</td></tr>`}).join('')}
+function renderPlan(){const mx=60,today=new Date();document.getElementById('plan-bars').innerHTML=PLAN.map(p=>{const we=new Date(p.start+'T00:00:00');we.setDate(we.getDate()+6);const act=S.activities.filter(a=>a.date>=p.start&&a.date<=(we.getFullYear()+'-'+String(we.getMonth()+1).padStart(2,'0')+'-'+String(we.getDate()).padStart(2,'0'))).reduce((s,a)=>s+a.dist_km,0);const ar=Math.round(act*10)/10,tp=(p.target/mx)*100,ap=Math.min((act/mx)*100,100);const col=act>=p.target*0.9?'#22C55E':act>0?'#F59E0B':'#334155';const ws=new Date(p.start+'T00:00:00'),isCur=today>=ws&&today<=we;return`<div class="plan-row" style="${isCur?'background:rgba(59,130,246,0.08);border-radius:6px;padding:0.5rem;margin:0 -0.5rem':''}"><div class="plan-week" style="color:${isCur?'#F1F5F9':'#94A3B8'}">${p.wk} <span style="font-size:0.6rem;color:${PC[p.phase]||'#64748B'}">${p.phase}</span></div><div class="plan-bar-wrap"><div class="plan-bar-target" style="width:${tp}%"></div><div class="plan-bar-actual" style="width:${ap}%;background:${col}"></div></div><div class="plan-nums">${ar>0?ar+'km':''} <span style="color:#475569">/ ${p.target}km</span></div></div>`}).join('')}
+function renderRuns(){
+const today=new Date();
+const startDate=new Date(today);startDate.setDate(today.getDate()-20);
+const todayStr=lds(today);
+const startStr=lds(startDate);
+
+// Build array of all 21 days
+let rows=[];
+for(let i=0;i<21;i++){
+  const d=new Date(today);d.setDate(today.getDate()-i);
+  const ds=lds(d);
+  const dayRuns=S.activities.filter(a=>a.date===ds);
+  const hasGym=S.gymDates.includes(ds);
+  const we=isWe(ds);
+  const dayName=dn(ds);
+  
+  if(dayRuns.length>0){
+    dayRuns.forEach(r=>{
+      const z=hz(r.avg_hr);
+      rows.push(`<tr class="${we?'weekend':''}">
+        <td><span class="day-badge ${we?'weekend':'weekday'}">${dayName}</span>${fd(ds)}</td>
+        <td style="font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}${hasGym?'<span class="gym-badge" title="Gym session">🏋️</span>':''}</td>
+        <td class="right" style="font-weight:700">${r.dist_km}km</td>
+        <td class="right">${fp(r.pace)}/km</td>
+        <td class="center">${r.avg_hr||'—'}</td>
+        <td class="center"><span class="zone-badge" style="background:${z.c}">${z.z}</span></td>
+        <td class="right" style="color:#64748B">${r.elevation?'↑'+r.elevation+'m':'—'}</td>
+      </tr>`);
+    });
+  } else {
+    // No run day
+    const restLabel=hasGym?'— No run':'— Rest day';
+    const restIcon=hasGym?'<span class="gym-badge">🏋️</span>':'<span style="font-size:0.75rem">😴</span>';
+    rows.push(`<tr class="${we?'weekend':''}" style="opacity:0.55">
+      <td><span class="day-badge ${we?'weekend':'weekday'}">${dayName}</span>${fd(ds)}</td>
+      <td style="color:#64748B">${restLabel} ${restIcon}</td>
+      <td class="right" style="color:#475569">—</td>
+      <td class="right" style="color:#475569">—</td>
+      <td class="center" style="color:#475569">—</td>
+      <td class="center">—</td>
+      <td class="right" style="color:#475569">—</td>
+    </tr>`);
+  }
+}
+document.getElementById('run-tbody').innerHTML=rows.join('')}
 function renderUpcoming(){
-const today=new Date(),todayStr=today.toISOString().slice(0,10);
+const today=new Date();const todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
 
 // "This week so far" summary
 let curWeek=null;
-for(let i=0;i<PLAN.length;i++){const ws=new Date(PLAN[i].start),we=new Date(ws);we.setDate(ws.getDate()+6);if(today>=ws&&today<=we){curWeek=PLAN[i];break}}
+for(let i=0;i<PLAN.length;i++){const ws=new Date(PLAN[i].start+'T00:00:00'),we=new Date(PLAN[i].start+'T00:00:00');we.setDate(we.getDate()+6);if(today>=ws&&today<=we){curWeek=PLAN[i];break}}
 let summaryHtml='';
 if(curWeek){
   const thisWeekRuns=S.activities.filter(a=>a.date>=curWeek.start&&a.date<=todayStr);
@@ -206,7 +252,7 @@ if(curWeek){
 // Next 14 days from today
 let h=summaryHtml;
 const endDate=new Date(today);endDate.setDate(today.getDate()+14);
-const endStr=endDate.toISOString().slice(0,10);
+const endStr=endDate.getFullYear()+'-'+String(endDate.getMonth()+1).padStart(2,'0')+'-'+String(endDate.getDate()).padStart(2,'0');
 
 // Collect all plan days in the next 14 days
 let futureDays=[];
@@ -247,7 +293,7 @@ futureDays.forEach(({dateStr,day,wk})=>{
 
 if(!futureDays.length)h+='<div style="text-align:center;color:#64748B;padding:2rem">No upcoming sessions found in plan</div>';
 document.getElementById('upcoming-content').innerHTML=h}
-function gW(acts){const w={};acts.forEach(a=>{const d=new Date(a.date),m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));const k=m.toISOString().slice(0,10);if(!w[k])w[k]={key:k,km:0,count:0,longest:0};w[k].km+=a.dist_km;w[k].count++;if(a.dist_km>w[k].longest)w[k].longest=a.dist_km});return Object.values(w).map(x=>({...x,km:+x.km.toFixed(1),longest:+x.longest.toFixed(1)})).sort((a,b)=>a.key.localeCompare(b.key))}
+function gW(acts){const w={};acts.forEach(a=>{const d=new Date(a.date),m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));const k=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0')+'-'+String(m.getDate()).padStart(2,'0');if(!w[k])w[k]={key:k,km:0,count:0,longest:0};w[k].km+=a.dist_km;w[k].count++;if(a.dist_km>w[k].longest)w[k].longest=a.dist_km});return Object.values(w).map(x=>({...x,km:+x.km.toFixed(1),longest:+x.longest.toFixed(1)})).sort((a,b)=>a.key.localeCompare(b.key))}
 </script>
 </body>
 </html>
