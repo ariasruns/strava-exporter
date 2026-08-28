@@ -22,6 +22,8 @@
     --good-bg:#e4f0e8; --warn-bg:#f8eeda; --crit-bg:#f7e3e0;
     --race:#7a3fa6; --race-bg:#efe4f6;
     --trip:#8a6a2f; --trip-bg:#f2ece0;
+    --s-long:#00838f; --s-hills:#a97710; --s-qual:#bc2f4e;
+    --s-travel:#4a6cb0; --s-race:#7a3fa6; --s-easy:#6b7d80; --s-rest:#ccd7d7;
     --shadow:0 1px 2px rgba(17,26,28,.06), 0 8px 24px -16px rgba(17,26,28,.28);
     color-scheme:light dark;
   }
@@ -35,6 +37,8 @@
       --good-bg:#16301f; --warn-bg:#33260c; --crit-bg:#3a1622;
       --race:#b489dd; --race-bg:#2a1c39;
       --trip:#c2a163; --trip-bg:#2b2418;
+      --s-long:#31a5b0; --s-hills:#bd8a26; --s-qual:#d9506c;
+      --s-travel:#5f92cf; --s-race:#b489dd; --s-easy:#79908f; --s-rest:#2b3a3d;
       --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
     }
   }
@@ -47,6 +51,8 @@
     --good-bg:#16301f; --warn-bg:#33260c; --crit-bg:#3a1622;
     --race:#b489dd; --race-bg:#2a1c39;
     --trip:#c2a163; --trip-bg:#2b2418;
+    --s-long:#31a5b0; --s-hills:#bd8a26; --s-qual:#d9506c;
+    --s-travel:#5f92cf; --s-race:#b489dd; --s-easy:#79908f; --s-rest:#2b3a3d;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
   }
 
@@ -111,10 +117,28 @@
   .metric .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
 
   .weekstrip{display:flex;flex-direction:column}
-  .drow{display:grid;grid-template-columns:50px 1fr auto;gap:11px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--line-soft)}
+  .drow{display:grid;grid-template-columns:50px 1fr auto;gap:11px;align-items:center;padding:11px 15px 11px 18px;border-bottom:1px solid var(--line-soft);position:relative}
+  .drow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sc,var(--s-rest))}
   .drow:last-child{border-bottom:0}
   .drow.is-today{background:var(--accent-soft)}
   .drow.is-race{background:var(--race-bg)}
+  .drow .emo{font-size:15px;line-height:1;margin-right:6px;filter:saturate(1.05)}
+  .drow .dtitle{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+  .stype{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--sc,var(--ink-3))}
+
+  /* notes */
+  .notebtn{appearance:none;border:0;background:none;cursor:pointer;padding:4px 6px;border-radius:5px;color:var(--ink-3);font-size:14px;line-height:1}
+  .notebtn:hover{background:var(--card-2);color:var(--ink)}
+  .notebtn.has{color:var(--accent-ink)}
+  .notebtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .notewrap{grid-column:1 / -1;padding-top:4px}
+  .notewrap textarea{width:100%;min-height:64px;resize:vertical;padding:9px 11px;border-radius:7px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",sans-serif;font-size:13.5px;line-height:1.5}
+  .notewrap textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .noteshow{grid-column:1 / -1;font-size:13px;color:var(--ink-2);background:var(--card-2);border-radius:7px;padding:8px 11px;line-height:1.5;white-space:pre-wrap}
+
+  .ringrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .ring{flex:none}
+  .ring text{font-family:Archivo,sans-serif;fill:var(--ink)}
   .drow .dday{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);line-height:1.25}
   .drow .dday b{display:block;font-family:Archivo,sans-serif;font-size:13px;font-weight:600;color:var(--ink)}
   .drow .dmain{min-width:0}
@@ -265,9 +289,34 @@
       </div>
     </div>
 
+    <div class="card" id="t-nextcard" hidden>
+      <div class="card-h"><h2>The session that matters</h2><span class="pill acc" id="t-nextcount">—</span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <span style="font-family:Archivo,sans-serif;font-weight:700;font-size:22px;letter-spacing:-.02em" id="t-nexttitle">—</span>
+          <span class="small muted" id="t-nextdate"></span>
+        </div>
+        <p class="note" id="t-nextnote" style="margin:0"></p>
+        <div id="t-peak"></div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-h"><h2>This week</h2><div class="small mono muted" id="t-weeknums"></div></div>
       <div class="weekstrip" id="t-week"></div>
+      <div class="card-b" style="border-top:1px solid var(--line-soft);display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" type="button" id="t-copy">📋 Copy this week for Claude</button>
+        <span class="xs muted" id="t-copied" style="align-self:center"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Banked so far</h2><span class="xs muted mono" id="t-bankedsub"></span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:16px">
+        <div id="t-vert"></div>
+        <div class="metrics" id="t-totals"></div>
+        <div id="t-hr"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -589,6 +638,39 @@ const weekPlanKm=w=>weekDays(w).filter(p=>!p.race).reduce((a,b)=>a+b.km,0);
 const weekPlanVert=w=>weekDays(w).filter(p=>!p.race).reduce((a,b)=>a+(b.vert||0),0);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+/* session typing: colour + icon carry the same information as the words */
+const STYPE={
+  race  :{emo:"🏁",label:"Race day",  v:"--s-race"},
+  long  :{emo:"🏔️",label:"Long run",  v:"--s-long"},
+  b2b   :{emo:"🔁",label:"Back to back",v:"--s-long"},
+  hills :{emo:"⛰️",label:"Vert",      v:"--s-hills"},
+  qual  :{emo:"⚡",label:"Efforts",   v:"--s-qual"},
+  mill  :{emo:"🏨",label:"Treadmill", v:"--s-travel"},
+  travel:{emo:"✈️",label:"Travel",    v:"--s-travel"},
+  easy  :{emo:"🏃",label:"Easy",      v:"--s-easy"},
+  lift  :{emo:"🏋️",label:"Lift",      v:"--s-easy"},
+  rest  :{emo:"😴",label:"Rest",      v:"--s-rest"}
+};
+function sType(p){
+  if(p.race) return "race";
+  if(p.long) return "long";
+  if(p.b2b) return "b2b";
+  if(/treadmill/i.test(p.t)) return "mill";
+  if(p.km===0&&p.trip) return "travel";
+  if(p.vert>=200) return "hills";
+  if(/effort|strides|kit check/i.test(p.t)) return "qual";
+  if(p.km===0) return p.lift?"lift":"rest";
+  return "easy";
+}
+
+/* local storage, wrapped: it throws in private windows and thumbnailers */
+function lsGet(k,fb){ try{const v=localStorage.getItem(k);return v==null?fb:JSON.parse(v)}catch(e){return fb} }
+function lsSet(k,v){ try{localStorage.setItem(k,JSON.stringify(v))}catch(e){} }
+
+let NOTES=lsGet("td_notes",{})||{};
+let TICKS=lsGet("td_ticks",{})||{};
+let openNote=null;
+
 /* ===================== DATA LAYER ===================== */
 /* Two sources, one shape. Inside claude.ai we use the Strava connector.
    On GitHub Pages we use the Strava OAuth token in localStorage. */
@@ -670,8 +752,8 @@ function initOAuth(){
   DATA.mode="oauth";
   const saved=localStorage.getItem("td_tokens"), secret=localStorage.getItem("td_secret");
   const code=new URLSearchParams(location.search).get("code");
-  const cached=localStorage.getItem("td_rows");
-  if(cached){ try{ ingest(JSON.parse(cached)); }catch(e){} }
+  const cached=lsGet("td_rows",null);
+  if(cached&&cached.length){ ingest(cached); renderAll(); }
 
   $("#authgo").addEventListener("click",()=>{
     const s=$("#secret").value.trim();
@@ -719,7 +801,22 @@ async function refresh(){
 function saveTokens(){
   localStorage.setItem("td_tokens",JSON.stringify({accessToken:S.accessToken,refreshToken:S.refreshToken,expiresAt:S.expiresAt}));
 }
+let lastSync=0, syncing=false;
+/* Auto-sync: on open, whenever the app comes back to the front, and every
+   15 minutes while it's there. Throttled so Strava's rate limit stays happy. */
+function autoSync(force){
+  if(DATA.mode!=="oauth"||!S.accessToken||syncing) return;
+  if(!force&&Date.now()-lastSync<10*60*1000) return;
+  fetchStrava();
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) autoSync(); });
+window.addEventListener("focus",()=>autoSync());
+window.addEventListener("online",()=>autoSync(true));
+setInterval(()=>{ if(!document.hidden) autoSync(); },15*60*1000);
+
 async function fetchStrava(){
+  if(syncing) return;
+  syncing=true;
   setStatus("Syncing Strava…");
   try{
     if(S.expiresAt&&Date.now()/1000>S.expiresAt-60) await refresh();
@@ -744,17 +841,18 @@ async function fetchStrava(){
       isRun:a.sport_type==="Run"||a.type==="Run",
       isLift:a.sport_type==="WeightTraining"||a.type==="WeightTraining"
     }));
-    localStorage.setItem("td_rows",JSON.stringify(rows));
+    lsSet("td_rows",rows);
     ingest(rows);
+    lastSync=Date.now();
     const n=new Date();
-    setStatus("Strava, updated "+n.getHours()+":"+pad(n.getMinutes()),
-      ' <button class="btn js-refresh" type="button">Refresh</button>');
+    setStatus("Auto-syncing · last checked "+n.getHours()+":"+pad(n.getMinutes()),
+      ' <button class="btn js-refresh" type="button">Sync now</button>');
     showAuth(false);
     renderAll();
   }catch(e){
     setStatus(e.message||"Could not reach Strava.", ' <button class="btn js-refresh" type="button">Retry</button>');
     renderAll();
-  }
+  }finally{ syncing=false; }
 }
 
 /* ===================== RENDER ===================== */
@@ -786,6 +884,7 @@ function renderToday(){
   const days=weekDays(w);
   $("#t-week").innerHTML=days.map(p=>{
     const logged=act.days[p.d]||0, lifted=!!act.lifts[p.d], past=p.d<today;
+    const st=sType(p), meta=STYPE[st];
     let right;
     if(p.race) right='<span class="pill race">100km</span>';
     else if(logged>0) right='<span class="dkm">'+logged.toFixed(1)+'km</span><span class="pill good"><span class="dot"></span>done</span>';
@@ -794,18 +893,37 @@ function renderToday(){
     else if(DATA.hasData&&past) right='<span class="pill neut">rest taken</span>';
     else if(p.km>0) right='<span class="dkm">'+p.km+'km</span>';
     else right='<span class="pill neut">rest</span>';
-    const tags=[];
+    const tags=[meta.label];
     if(p.loc) tags.push(p.loc);
-    if(p.long) tags.push("long run");
-    if(p.b2b) tags.push("back-to-back");
     if(p.lift) tags.push(p.lift.toLowerCase());
     if(p.vert) tags.push(p.vert+"m vert");
-    return '<div class="drow'+(p.d===today?' is-today':'')+(p.race?' is-race':'')+'">'
+    const note=NOTES[p.d]||"";
+    const open=openNote===p.d;
+    return '<div class="drow'+(p.d===today?' is-today':'')+(p.race?' is-race':'')+'" style="--sc:var('+meta.v+')">'
       +'<div class="dday"><b>'+fmtDay(p.d)+'</b>'+fmtDate(p.d)+'</div>'
-      +'<div class="dmain"><div class="dtitle">'+esc(p.t)+'</div>'
-      +(tags.length?'<div class="dnote">'+esc(tags.join(" · "))+'</div>':'')
-      +'</div><div class="dright">'+right+'</div></div>';
+      +'<div class="dmain"><div class="dtitle"><span class="emo">'+meta.emo+'</span>'+esc(p.t)+'</div>'
+      +'<div class="dnote"><span class="stype">'+esc(tags[0])+'</span>'
+      +(tags.length>1?' · '+esc(tags.slice(1).join(" · ")):'')+'</div></div>'
+      +'<div class="dright">'+right
+      +'<button class="notebtn'+(note?' has':'')+'" type="button" data-note="'+p.d+'" '
+      +'aria-label="'+(note?'Edit note':'Add note')+' for '+fmtDate(p.d)+'" aria-expanded="'+open+'">'
+      +(note?'📝':'✏️')+'</button></div>'
+      +(open
+        ?'<div class="notewrap"><textarea data-noteinput="'+p.d+'" placeholder="How did it go? Sleep, niggles, how the legs felt.">'+esc(note)+'</textarea></div>'
+        :(note?'<div class="noteshow">'+esc(note)+'</div>':''))
+      +'</div>';
   }).join("");
+
+  $$("#t-week [data-note]").forEach(b=>b.addEventListener("click",()=>{
+    openNote=(openNote===b.dataset.note)?null:b.dataset.note; renderToday();
+    const ta=$("#t-week [data-noteinput]"); if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}
+  }));
+  const ta=$("#t-week [data-noteinput]");
+  if(ta) ta.addEventListener("input",()=>{
+    const d=ta.dataset.noteinput, v=ta.value.trim();
+    if(v) NOTES[d]=v; else delete NOTES[d];
+    lsSet("td_notes",NOTES);
+  });
 
   const planKm=weekPlanKm(w);
   $("#t-weeknums").textContent=act.km.toFixed(0)+"km of "+planKm+"km";
@@ -821,19 +939,78 @@ function renderToday(){
     +'<div class="bar"><div class="fill '+cls+'" style="width:'+pct.toFixed(1)+'%"></div><div class="target" style="left:calc(100% - 1px)"></div></div>'
     +'<div class="barlabels"><span>'+act.km.toFixed(1)+'km run</span><span>'+planKm+'km planned</span></div>';
 
+  // ---- the session that matters ----
+  const nextBig=PLAN.find(p=>p.d>=today&&(p.race||(p.long&&p.km>=18)));
+  if(nextBig){
+    const out=Math.round((parseISO(nextBig.d)-parseISO(today))/86400000);
+    $("#t-nextcard").hidden=false;
+    $("#t-nextcount").textContent=out===0?"today":(out===1?"tomorrow":out+" days away");
+    $("#t-nexttitle").textContent=(nextBig.race?"🏁 ":"🏔️ ")+nextBig.t;
+    $("#t-nextdate").textContent=fmtLong(nextBig.d)+(nextBig.vert?" · "+nextBig.vert+"m vert":"");
+    $("#t-nextnote").textContent=nextBig.note||"";
+    const peak=PLAN.find(p=>p.km===38);
+    const pOut=Math.round((parseISO(peak.d)-parseISO(today))/86400000);
+    $("#t-peak").innerHTML=(nextBig.d===peak.d||pOut<0)?""
+      :'<span class="xs muted">⛰️ The peak: 38km dress rehearsal on '+fmtDate(peak.d)+', '+pOut+' days away.</span>';
+  } else $("#t-nextcard").hidden=true;
+
+  // ---- vert banked ----
+  const bankedVert=DATA.runs.reduce((a,b)=>a+b.vert,0);
+  const planVertAll=WEEK_META.reduce((a,m)=>a+weekPlanVert(m.w),0);
+  const vpct=Math.min(100,(bankedVert/planVertAll)*100);
+  const racePct=(1853/planVertAll)*100;
+  $("#t-vert").innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px">'
+    +'<div class="eyebrow">⛰️ Climbing banked</div>'
+    +'<span class="pill '+(bankedVert>=1853?"good":"warn")+'"><span class="dot"></span>'
+    +(bankedVert>=1853?"past one race":"building")+'</span></div>'
+    +'<div class="bar" style="height:14px"><div class="fill" style="width:'+vpct.toFixed(1)+'%;background:var(--s-hills)"></div>'
+    +'<div class="target" style="left:'+racePct.toFixed(1)+'%"></div></div>'
+    +'<div class="barlabels"><span>'+Math.round(bankedVert)+'m climbed</span>'
+    +'<span>marker = 1,853m, the race in one day</span></div>';
+
+  // ---- block totals ----
+  const secsAll=DATA.runs.reduce((a,b)=>a+b.secs,0);
+  const kmAll=DATA.runs.reduce((a,b)=>a+b.km,0);
+  const hoursAll=secsAll/3600;
+  const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
+  $("#t-bankedsub").textContent="since 24 Aug";
+  $("#t-totals").innerHTML=[
+    {v:hoursAll.toFixed(1)+"h",k:"⏱ time on feet"},
+    {v:Math.round(kmAll)+"km",k:"total run"},
+    {v:longest?longest.toFixed(0)+"km":"—",k:"🏔️ longest"},
+    {v:Math.round(bankedVert)+"m",k:"⛰️ climbed"}
+  ].map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
+
+  // ---- easy-run heart rate check ----
+  const hrRuns=DATA.runs.filter(r=>r.hr&&r.km<20);
+  if(hrRuns.length>=3){
+    const recent=hrRuns.slice(-8);
+    const hot=recent.filter(r=>r.hr>156);
+    const avg=Math.round(recent.reduce((a,b)=>a+b.hr,0)/recent.length);
+    const bad=hot.length>=Math.ceil(recent.length/2);
+    $("#t-hr").innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px">'
+      +'<div class="eyebrow">❤️ Easy run heart rate</div>'
+      +'<span class="pill '+(bad?"crit":(hot.length?"warn":"good"))+'"><span class="dot"></span>'
+      +(bad?"running too hard":(hot.length?hot.length+" of "+recent.length+" too hard":"in the zone"))+'</span></div>'
+      +'<p class="note'+(bad?" crit":"")+'" style="font-size:13px">Last '+recent.length+' short runs averaged '+avg+'bpm. '
+      +(bad
+        ?'Too hard for easy days. Slow down: easy runs belong under 151 and never over 156. Running your easy days at 160 is the fastest way to arrive at October tired instead of fit.'
+        :(hot.length?'Mostly right. Keep the drift under 156 on easy days.'
+                    :'Right where it should be. Keep it there.'))+'</p>';
+  } else $("#t-hr").innerHTML="";
+
   // recent form
   const r14=DATA.runs.filter(r=>r.date>iso(new Date(Date.now()-14*864e5)));
   const km14=r14.reduce((a,b)=>a+b.km,0);
   const hrs=r14.filter(r=>r.hr);
   const avgHr=hrs.length?Math.round(hrs.reduce((a,b)=>a+b.hr,0)/hrs.length):null;
-  const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
-  const secs=r14.reduce((a,b)=>a+b.secs,0);
-  const avgPace=km14>0&&secs>0?pace(secs/60,km14):"—";
+  const secs14=r14.reduce((a,b)=>a+b.secs,0);
+  const avgPace=km14>0&&secs14>0?pace(secs14/60,km14):"—";
   const form=[
     {v:km14.toFixed(0)+"km",k:"last 14 days"},
-    {v:r14.length,k:"runs"},
-    {v:avgPace,k:"avg pace"},
-    {v:longest?longest.toFixed(0)+"km":"—",k:"longest in block"}
+    {v:r14.length+" runs",k:"last 14 days"},
+    {v:avgPace,k:"avg pace"}
   ];
   if(avgHr) form.push({v:avgHr,k:avgHr>156?"avg hr, too high":"avg hr"});
   $("#t-form").innerHTML=form.map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
@@ -946,9 +1123,8 @@ function renderTrip(){
       +'<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span class="td-t">'+esc(p.t)+'</span>'+km+'</div>'
       +(p.note?'<div class="td-n">'+esc(p.note)+'</div>':'')+'</div></div>';
   }).join("");
-  const mk=a=>a.map(t=>'<li><span class="mk"></span><span class="small">'+esc(t)+'</span></li>').join("");
-  $("#trip-fly").innerHTML=mk(TRIP_FLY);
-  $("#trip-health").innerHTML=mk(TRIP_HEALTH);
+  $("#trip-fly").innerHTML=mkChecks(TRIP_FLY,"fly");
+  $("#trip-health").innerHTML=mkChecks(TRIP_HEALTH,"hea");
   wireChecks();
 }
 
@@ -958,19 +1134,81 @@ function splitsFor(total){
   for(let d=1;d<=100;d++){u+=1+0.5*d/100;cum.push(u)}
   return cum.map(c=>c*(total/u));
 }
+const mkChecks=(a,pfx)=>a.map((t,i)=>
+  '<li data-key="'+pfx+i+'"><span class="mk"></span><span class="small">'+esc(t)+'</span></li>').join("");
+
 function wireChecks(){
   $$("ul.checks li").forEach(li=>{
     if(li.dataset.wired)return; li.dataset.wired="1";
-    li.style.cursor="pointer"; li.tabIndex=0;
-    li.setAttribute("role","checkbox"); li.setAttribute("aria-checked","false");
-    const toggle=()=>{
-      const m=$(".mk",li), on=m.classList.toggle("on");
-      m.textContent=on?"✓":""; li.setAttribute("aria-checked",String(on));
-      li.style.opacity=on?"0.55":"1";
+    const key=li.dataset.key;
+    const m=$(".mk",li);
+    const paint=on=>{
+      m.classList.toggle("on",on); m.textContent=on?"✓":"";
+      li.setAttribute("aria-checked",String(on)); li.style.opacity=on?"0.55":"1";
     };
+    li.style.cursor="pointer"; li.tabIndex=0; li.setAttribute("role","checkbox");
+    paint(!!TICKS[key]);
+    const toggle=()=>{ const on=!TICKS[key]; if(on)TICKS[key]=1; else delete TICKS[key]; lsSet("td_ticks",TICKS); paint(on); };
     li.addEventListener("click",toggle);
     li.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();toggle()}});
   });
+}
+
+/* ---- export the week as text to paste into Claude ---- */
+function weekReport(){
+  const today=todayISO(), w=weekOf(today), meta=WEEK_META[w], days=weekDays(w);
+  const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{}};
+  const L=[];
+  L.push("Taupō 100k training update, "+fmtLong(today));
+  L.push(meta.name+", "+fmtDate(days[0].d)+" to "+fmtDate(days[6].d));
+  L.push("Week: "+act.km.toFixed(1)+"km run of "+weekPlanKm(w)+"km planned, "+Math.round(act.vert)+"m vert.");
+  L.push("");
+  days.forEach(p=>{
+    const done=act.days[p.d]||0, lift=act.lifts[p.d]?" + lift":"";
+    L.push(fmtDay(p.d)+" "+fmtDate(p.d)+": planned "+(p.km?p.km+"km":"rest")+(p.lift?" + "+p.lift:"")
+      +" | actual "+(done?done.toFixed(1)+"km":(act.lifts[p.d]?"lift only":"nothing logged"))+lift);
+    if(NOTES[p.d]) L.push("   note: "+NOTES[p.d]);
+  });
+  const secs=DATA.runs.reduce((a,b)=>a+b.secs,0), km=DATA.runs.reduce((a,b)=>a+b.km,0);
+  const vert=DATA.runs.reduce((a,b)=>a+b.vert,0);
+  const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
+  L.push("");
+  L.push("Block to date: "+Math.round(km)+"km, "+(secs/3600).toFixed(1)+"h on feet, "
+    +Math.round(vert)+"m vert, longest "+longest.toFixed(0)+"km.");
+  const other=Object.keys(NOTES).filter(d=>!days.some(p=>p.d===d)).sort();
+  if(other.length){
+    L.push(""); L.push("Earlier notes:");
+    other.forEach(d=>L.push("  "+fmtDate(d)+": "+NOTES[d]));
+  }
+  L.push(""); L.push("Read this against my Strava and tell me what to change.");
+  return L.join("\n");
+}
+function copyWeek(){
+  const txt=weekReport(), say=m=>{const e=$("#t-copied");if(e){e.textContent=m;setTimeout(()=>{e.textContent=""},2600)}};
+  const reveal=()=>{
+    let box=$("#t-copybox");
+    if(!box){
+      box=document.createElement("textarea");
+      box.id="t-copybox"; box.readOnly=true;
+      box.style.cssText="width:100%;min-height:180px;margin-top:10px;padding:10px;border-radius:7px;"
+        +"border:1px solid var(--line);background:var(--paper);color:var(--ink);"
+        +"font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.5";
+      $("#t-copy").parentNode.appendChild(box);
+    }
+    box.value=txt; box.select();
+    say("Select all and copy this, then paste it to me.");
+  };
+  const fallback=()=>{
+    const ta=document.createElement("textarea");
+    ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    let ok=false; try{ok=document.execCommand("copy")}catch(e){}
+    document.body.removeChild(ta);
+    if(ok) say("Copied. Paste it to me."); else reveal();
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(txt).then(()=>say("Copied. Paste it to me."),fallback);
+  else fallback();
 }
 function renderRace(){
   $("#r-target").innerHTML=TARGETS.map(t=>'<button type="button" data-min="'+t.min+'" aria-pressed="'+(t.min===targetMin)+'">'+t.label+'</button>').join("");
@@ -991,8 +1229,7 @@ function renderRace(){
   }).join("");
   $("#f-total").textContent=Math.round((targetMin/60)*85/10)*10;
   $("#r-bags").innerHTML=BAGS.map(b=>'<div><div class="eyebrow">'+b.km+'km · '+esc(b.at)+'</div><div class="small" style="color:var(--ink-2);margin-top:3px">'+esc(b.items)+'</div></div>').join("");
-  const mk=a=>a.map(t=>'<li><span class="mk"></span><span class="small">'+esc(t)+'</span></li>').join("");
-  $("#r-kit").innerHTML=mk(KIT); $("#r-final").innerHTML=mk(FINAL48);
+  $("#r-kit").innerHTML=mkChecks(KIT,"kit"); $("#r-final").innerHTML=mkChecks(FINAL48,"f48");
   wireChecks();
 }
 
@@ -1004,19 +1241,36 @@ function renderCountdown(){
 }
 function renderAll(){renderCountdown();renderToday();renderBlock()}
 
-(function tabs(){
-  const map={"tab-today":"v-today","tab-block":"v-block","tab-trip":"v-trip","tab-race":"v-race"};
-  Object.keys(map).forEach(id=>{
-    $("#"+id).addEventListener("click",()=>{
-      Object.keys(map).forEach(k=>{
-        const sel=k===id;
-        $("#"+k).setAttribute("aria-selected",String(sel));
-        $("#"+map[k]).hidden=!sel;
-      });
-      window.scrollTo(0,0);
-    });
+const TABS=[["tab-today","v-today"],["tab-block","v-block"],["tab-trip","v-trip"],["tab-race","v-race"]];
+let tabIdx=0;
+function selectTab(i){
+  tabIdx=Math.max(0,Math.min(TABS.length-1,i));
+  TABS.forEach(([t,v],n)=>{
+    const sel=n===tabIdx;
+    $("#"+t).setAttribute("aria-selected",String(sel));
+    $("#"+v).hidden=!sel;
   });
+  window.scrollTo(0,0);
+}
+(function tabs(){
+  TABS.forEach(([t],n)=>$("#"+t).addEventListener("click",()=>selectTab(n)));
+  // swipe left and right on the phone
+  let x0=null,y0=null;
+  document.addEventListener("touchstart",e=>{
+    if(e.touches.length!==1){x0=null;return}
+    const t=e.target;
+    if(t.closest(".tblbox,.chartbox,textarea,nav.tabs")){x0=null;return}
+    x0=e.touches[0].clientX; y0=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener("touchend",e=>{
+    if(x0==null)return;
+    const t=e.changedTouches[0], dx=t.clientX-x0, dy=t.clientY-y0;
+    x0=null;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*2) selectTab(tabIdx+(dx<0?1:-1));
+  },{passive:true});
 })();
+
+$("#t-copy").addEventListener("click",copyWeek);
 
 renderAll(); renderTrip(); renderRace();
 if(window.claude&&typeof window.claude.use==="function"){ setStatus("Reading Strava…"); initConnector(); }
