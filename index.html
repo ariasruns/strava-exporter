@@ -2,314 +2,1026 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taupo 100K — Training Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e7c86" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c1214" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Taupo 100K">
+<meta name="description" content="Taupo Ultramarathon 100km training plan, travel block and race-day pacing.">
+<title>Waihaha to Whakaipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;background:#0B1121;color:#E2E8F0;min-height:100vh}
-  .app{max-width:1100px;margin:0 auto;padding:1.25rem}
-  .header{background:linear-gradient(135deg,#1E293B,#0F172A);border:1px solid #1E3A5F;border-radius:1rem;padding:1.5rem;margin-bottom:1.25rem}
-  .header-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem}
-  .header h1{font-size:1.4rem;font-weight:800;color:#F8FAFC}
-  .header .subtitle{font-size:0.8rem;color:#64748B;margin-top:0.25rem}
-  .header-actions{display:flex;gap:0.5rem}
-  .race-strip{display:flex;gap:0.5rem;margin-top:1rem;overflow-x:auto;padding-bottom:0.25rem}
-  .race-chip{flex-shrink:0;background:#1E293B;border:1px solid #334155;border-radius:0.625rem;padding:0.5rem 0.75rem;text-align:center;min-width:110px}
-  .race-chip.next{border-color:#3B82F6;background:rgba(59,130,246,0.1)}
-  .race-chip.goal{border-color:#EF4444;background:rgba(239,68,68,0.1)}
-  .race-chip .dist{font-size:0.7rem;font-weight:700;color:#94A3B8;text-transform:uppercase}
-  .race-chip .name{font-size:0.65rem;color:#64748B;margin-top:0.125rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
-  .race-chip .days{font-size:1.25rem;font-weight:800;color:#F1F5F9;margin-top:0.25rem}
-  .race-chip.next .days{color:#60A5FA}.race-chip.goal .days{color:#F87171}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1.25rem}
-  .stat{background:#1E293B;border:1px solid #334155;border-radius:0.75rem;padding:1rem}
-  .stat-label{font-size:0.65rem;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em}
-  .stat-value{font-size:1.5rem;font-weight:800;margin-top:0.25rem}
-  .stat-sub{font-size:0.7rem;color:#475569;margin-top:0.125rem}
-  .blue{color:#3B82F6}.green{color:#22C55E}.amber{color:#F59E0B}.purple{color:#A78BFA}
-  .tabs{display:flex;gap:0.375rem;margin-bottom:1.25rem;overflow-x:auto}
-  .tab{padding:0.5rem 1rem;font-size:0.8rem;font-weight:600;border-radius:0.5rem;border:none;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
-  .tab.active{background:#3B82F6;color:white}
-  .tab:not(.active){background:#1E293B;color:#94A3B8;border:1px solid #334155}
-  .tab:not(.active):hover{background:#334155;color:#CBD5E1}
-  .card{background:#1E293B;border:1px solid #334155;border-radius:1rem;padding:1.5rem;margin-bottom:1.25rem}
-  .card h2{font-size:1rem;font-weight:700;color:#F1F5F9;margin-bottom:1rem}
-  .chart-wrap{position:relative;height:280px;margin:0.5rem 0}
-  .run-table{width:100%;border-collapse:collapse;font-size:0.8rem}
-  .run-table th{text-align:left;padding:0.5rem;color:#64748B;font-weight:600;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #334155}
-  .run-table td{padding:0.5rem;border-bottom:1px solid #1E293B}
-  .run-table tr:hover{background:rgba(59,130,246,0.05)}
-  .run-table tr.weekend{background:rgba(99,102,241,0.08);border-left:3px solid #6366F1}
-  .run-table tr.weekend:hover{background:rgba(99,102,241,0.12)}
-  .run-table .right{text-align:right}.run-table .center{text-align:center}
-  .zone-badge{display:inline-block;padding:0.125rem 0.5rem;border-radius:1rem;font-size:0.65rem;font-weight:700;color:white}
-  .day-badge{display:inline-block;padding:0.125rem 0.375rem;border-radius:0.25rem;font-size:0.65rem;font-weight:700;margin-right:0.25rem}
-  .day-badge.weekend{background:rgba(99,102,241,0.2);color:#A5B4FC}
-  .day-badge.weekday{background:transparent;color:#64748B}
-  .gym-badge{font-size:0.75rem;margin-left:0.25rem}
-  .btn{display:inline-flex;align-items:center;gap:0.375rem;padding:0.5rem 1rem;border:none;border-radius:0.5rem;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
-  .btn:disabled{opacity:0.4;cursor:not-allowed}
-  .btn-blue{background:#3B82F6;color:white}.btn-blue:hover:not(:disabled){background:#2563EB}
-  .btn-green{background:#22C55E;color:white}.btn-green:hover:not(:disabled){background:#16A34A}
-  .btn-ghost{background:transparent;color:#94A3B8;border:1px solid #475569}.btn-ghost:hover{background:#334155}
-  .btn-strava{background:#FC4C02;color:white;padding:0.75rem 1.5rem;font-size:0.9rem;width:100%;justify-content:center}.btn-strava:hover:not(:disabled){background:#E8440A}
-  .auth-screen{display:flex;align-items:center;justify-content:center;min-height:80vh}
-  .auth-card{background:#1E293B;border:1px solid #334155;border-radius:1rem;padding:2rem;max-width:440px;width:100%}
-  .auth-card h1{font-size:1.25rem;font-weight:800;text-align:center;margin-bottom:0.25rem}
-  .auth-card .sub{text-align:center;color:#64748B;font-size:0.85rem;margin-bottom:1.5rem}
-  .auth-card .emoji{text-align:center;font-size:2.5rem;margin-bottom:0.75rem}
-  .input-group{margin-bottom:1rem}
-  .input-group label{display:block;font-size:0.7rem;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.375rem}
-  .input-group input{width:100%;padding:0.625rem 0.875rem;background:#0F172A;border:1px solid #475569;border-radius:0.5rem;color:#F1F5F9;font-size:0.85rem;font-family:'Inter',sans-serif}
-  .input-group input:focus{outline:none;border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
-  .input-group input:disabled{opacity:0.5}
-  .input-hint{font-size:0.7rem;color:#475569;margin-top:0.25rem}
-  .privacy{background:#0F172A;border:1px solid #334155;border-radius:0.5rem;padding:0.75rem;font-size:0.7rem;color:#64748B;margin-top:1rem}
-  .privacy strong{color:#94A3B8}
-  .status-error{background:rgba(239,68,68,0.1);border:1px solid #EF4444;color:#FCA5A5;padding:0.5rem 0.75rem;border-radius:0.5rem;font-size:0.8rem;margin-bottom:0.75rem}
-  .alert-amber{background:rgba(245,158,11,0.1);border:1px solid #F59E0B;color:#FCD34D;padding:0.75rem 1rem;border-radius:0.5rem;font-size:0.8rem;margin-top:1rem}
-  .plan-row{display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0;border-bottom:1px solid #0F172A;font-size:0.8rem}
-  .plan-week{width:100px;font-weight:600;color:#94A3B8;flex-shrink:0}
-  .plan-bar-wrap{flex:1;position:relative;height:24px}
-  .plan-bar-target{position:absolute;top:0;left:0;height:100%;background:rgba(148,163,184,0.1);border:1px dashed #475569;border-radius:4px}
-  .plan-bar-actual{position:absolute;top:0;left:0;height:100%;border-radius:4px;z-index:1}
-  .plan-nums{width:130px;text-align:right;font-size:0.75rem;color:#64748B;flex-shrink:0}
-  .upcoming-day{display:flex;align-items:stretch;gap:0.75rem;padding:0.625rem 0;border-bottom:1px solid #0F172A;font-size:0.85rem}
-  .upcoming-day.weekend{background:rgba(99,102,241,0.06);border-radius:0.5rem;padding:0.625rem 0.5rem;margin:0 -0.5rem}
-  .upcoming-day.is-today{border:1px solid #3B82F6;border-radius:0.5rem;padding:0.625rem 0.5rem;margin:0 -0.5rem}
-  .upcoming-date{width:70px;flex-shrink:0;text-align:center}
-  .upcoming-date .day-num{font-size:1.25rem;font-weight:800;color:#F1F5F9}
-  .upcoming-date .day-name{font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
-  .upcoming-date .day-name.wkend{color:#A5B4FC}
-  .upcoming-date .day-name.wkday{color:#64748B}
-  .upcoming-content{flex:1}
-  .upcoming-session{font-weight:600;color:#CBD5E1;margin-bottom:0.125rem}
-  .upcoming-detail{font-size:0.75rem;color:#64748B;line-height:1.4}
-  .upcoming-tags{display:flex;gap:0.375rem;margin-top:0.25rem;flex-wrap:wrap}
-  .upcoming-tag{font-size:0.65rem;padding:0.125rem 0.5rem;border-radius:1rem;font-weight:600}
-  .tag-run{background:rgba(34,197,94,0.15);color:#86EFAC}
-  .tag-lift{background:rgba(245,158,11,0.15);color:#FCD34D}
-  .tag-hiit{background:rgba(168,85,247,0.15);color:#C4B5FD}
-  .tag-race{background:rgba(239,68,68,0.15);color:#FCA5A5}
-  .tag-rest{background:rgba(100,116,139,0.15);color:#94A3B8}
-  .tag-long{background:rgba(59,130,246,0.15);color:#93C5FD}
-  .tag-done{background:rgba(34,197,94,0.2);color:#86EFAC}
-  .wk-header{margin:1rem 0 0.5rem;font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
-  .footer{text-align:center;font-size:0.7rem;color:#334155;padding:1rem 0}
-  .hidden{display:none!important}
-  .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}.chart-wrap{height:220px}}
+  :root{
+    --paper:#f2f5f5; --card:#ffffff; --card-2:#e9eeee;
+    --line:#d3dcdc; --line-soft:#e3eaea;
+    --ink:#111a1c; --ink-2:#3d4d50; --ink-3:#6b7d80;
+    --accent:#0e7c86; --accent-soft:#dceced; --accent-ink:#0a5a62;
+    --good:#2f7d4f; --warn:#c47a10; --crit:#b3372a;
+    --good-bg:#e4f0e8; --warn-bg:#f8eeda; --crit-bg:#f7e3e0;
+    --race:#7a3fa6; --race-bg:#efe4f6;
+    --trip:#8a6a2f; --trip-bg:#f2ece0;
+    --shadow:0 1px 2px rgba(17,26,28,.06), 0 8px 24px -16px rgba(17,26,28,.28);
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0c1214; --card:#141d1f; --card-2:#1c2729;
+      --line:#2b3a3d; --line-soft:#223032;
+      --ink:#e8efef; --ink-2:#a8bbbc; --ink-3:#79908f;
+      --accent:#3fb2bc; --accent-soft:#12333a; --accent-ink:#67cad3;
+      --good:#45a26f; --warn:#b87f1e; --crit:#e0587a;
+      --good-bg:#16301f; --warn-bg:#33260c; --crit-bg:#3a1622;
+      --race:#b489dd; --race-bg:#2a1c39;
+      --trip:#c2a163; --trip-bg:#2b2418;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0c1214; --card:#141d1f; --card-2:#1c2729;
+    --line:#2b3a3d; --line-soft:#223032;
+    --ink:#e8efef; --ink-2:#a8bbbc; --ink-3:#79908f;
+    --accent:#3fb2bc; --accent-soft:#12333a; --accent-ink:#67cad3;
+    --good:#45a26f; --warn:#b87f1e; --crit:#e0587a;
+    --good-bg:#16301f; --warn-bg:#33260c; --crit-bg:#3a1622;
+    --race:#b489dd; --race-bg:#2a1c39;
+    --trip:#c2a163; --trip-bg:#2b2418;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 14px calc(72px + env(safe-area-inset-bottom))}
+  h1,h2,h3{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;text-wrap:balance}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .eyebrow{font-family:Archivo,sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+
+  header.top{border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:20}
+  .top-in{max-width:1000px;margin:0 auto;padding:12px 14px 0;display:flex;flex-direction:column;gap:10px}
+  .brandrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+  .brand{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .brand .name{font-family:Archivo,sans-serif;font-weight:700;font-size:18px;letter-spacing:-.015em;line-height:1.15}
+  .brand .sub{font-size:11.5px;color:var(--ink-3)}
+  .count{display:flex;align-items:baseline;gap:7px;flex:none}
+  .count .n{font-family:Archivo,sans-serif;font-weight:700;font-size:36px;line-height:.9;letter-spacing:-.03em;color:var(--accent)}
+  .count .u{font-size:11px;color:var(--ink-3);text-align:left;line-height:1.25}
+
+  nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs button{
+    appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+    font-family:Archivo,sans-serif;font-weight:600;font-size:13px;
+    color:var(--ink-3);padding:10px 13px 11px;cursor:pointer;white-space:nowrap;
+  }
+  nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+  nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:3px}
+
+  section.view{padding-top:20px;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+  .card-h{padding:12px 15px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .card-h h2{margin:0;font-size:14px;font-weight:600}
+  .card-b{padding:15px}
+  .muted{color:var(--ink-3)} .small{font-size:13px} .xs{font-size:12px}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:2.5px 7px;border-radius:4px;white-space:nowrap}
+  .pill.good{background:var(--good-bg);color:var(--good)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.crit{background:var(--crit-bg);color:var(--crit)}
+  .pill.neut{background:var(--card-2);color:var(--ink-3)}
+  .pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
+  .pill.race{background:var(--race-bg);color:var(--race)}
+  .pill.trip{background:var(--trip-bg);color:var(--trip)}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  .hero-top{padding:14px 15px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .hero-body{padding:18px 15px 20px;display:flex;flex-direction:column;gap:13px}
+  .sess-title{font-family:Archivo,sans-serif;font-weight:700;font-size:clamp(26px,7vw,40px);line-height:1.03;letter-spacing:-.03em;margin:0}
+  .sess-sub{margin:0;color:var(--ink-2);max-width:62ch}
+  .metrics{display:flex;flex-wrap:wrap;gap:7px}
+  .metric{background:var(--card-2);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:1px;min-width:84px;flex:1 1 auto}
+  .metric .v{font-family:Archivo,sans-serif;font-weight:700;font-size:19px;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .metric .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+
+  .weekstrip{display:flex;flex-direction:column}
+  .drow{display:grid;grid-template-columns:50px 1fr auto;gap:11px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--line-soft)}
+  .drow:last-child{border-bottom:0}
+  .drow.is-today{background:var(--accent-soft)}
+  .drow.is-race{background:var(--race-bg)}
+  .drow .dday{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);line-height:1.25}
+  .drow .dday b{display:block;font-family:Archivo,sans-serif;font-size:13px;font-weight:600;color:var(--ink)}
+  .drow .dmain{min-width:0}
+  .drow .dtitle{font-weight:600;font-size:14px;line-height:1.3}
+  .drow .dnote{font-size:12px;color:var(--ink-3);line-height:1.4;margin-top:1px}
+  .drow .dright{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+  .drow .dkm{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+
+  .wk{padding:13px 15px;border-bottom:1px solid var(--line-soft)}
+  .wk:last-child{border-bottom:0}
+  .wk.is-now{background:var(--accent-soft)}
+  .wk-h{display:flex;align-items:baseline;justify-content:space-between;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+  .wk-name{font-family:Archivo,sans-serif;font-weight:600;font-size:14px}
+  .wk-name span{color:var(--ink-3);font-weight:500;font-size:11.5px;margin-left:7px;font-family:"IBM Plex Mono",monospace}
+
+  .bar{position:relative;height:11px;background:var(--card-2);border-radius:3px}
+  .bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px 4px 4px 3px;background:var(--accent);min-width:3px}
+  .bar .fill.good{background:var(--good)}
+  .bar .fill.warn{background:var(--warn)}
+  .bar .fill.crit{background:var(--crit)}
+  .bar .target{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-2);border-radius:1px}
+  .barlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:5px;font-family:"IBM Plex Mono",monospace;gap:8px}
+
+  figure.chart{margin:0;display:flex;flex-direction:column;gap:8px}
+  figure.chart figcaption{font-size:12.5px;color:var(--ink-3);line-height:1.45}
+  .chartbox{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  svg.plot{display:block;width:100%;height:auto;min-width:480px}
+  svg.plot .grid{stroke:var(--line-soft);stroke-width:1}
+  svg.plot .axis{fill:var(--ink-3);font-size:10.5px;font-family:"IBM Plex Mono",monospace}
+  svg.plot .lbl{fill:var(--ink-2);font-size:10.5px;font-family:"IBM Plex Mono",monospace;font-weight:500}
+
+  .tblbox{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:13.5px}
+  th,td{text-align:right;padding:8px 9px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:Archivo,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line)}
+  tbody td{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+  tbody td:first-child{font-family:"IBM Plex Sans",sans-serif}
+  tbody tr.dropbag{background:var(--accent-soft)}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr.finish td{font-weight:600;background:var(--race-bg)}
+
+  .seg{display:inline-flex;background:var(--card-2);border-radius:7px;padding:3px;gap:2px}
+  .seg button{appearance:none;border:0;background:none;cursor:pointer;border-radius:5px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:500;padding:6px 11px;color:var(--ink-3)}
+  .seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  .btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:7px 13px;font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:500;cursor:pointer}
+  .btn:hover{background:var(--card-2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  ul.checks{list-style:none;margin:0;padding:0}
+  ul.checks li{padding:10px 0;border-bottom:1px solid var(--line-soft);display:flex;gap:10px;align-items:flex-start}
+  ul.checks li:last-child{border-bottom:0}
+  ul.checks li:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  ul.checks .mk{flex:none;width:19px;height:19px;border-radius:4px;border:1.5px solid var(--line);margin-top:1px;display:grid;place-items:center;font-size:11px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+  ul.checks .mk.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  :root[data-theme="dark"] ul.checks .mk.on{color:#06181a}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) ul.checks .mk.on{color:#06181a}}
+
+  .grid2{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+
+  .note{border-left:2px solid var(--accent);padding:2px 0 2px 13px;color:var(--ink-2);font-size:13.5px;line-height:1.55;margin:0}
+  .note.warn{border-left-color:var(--warn)}
+  .note.crit{border-left-color:var(--crit)}
+  .note.trip{border-left-color:var(--trip)}
+  .note b{color:var(--ink)}
+
+  .status{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;flex-wrap:wrap}
+  .status button{font-size:11px;padding:3px 8px}
+
+  .tripday{padding:13px 15px;border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:58px 1fr;gap:12px}
+  .tripday:last-child{border-bottom:0}
+  .tripday.is-today{background:var(--accent-soft)}
+  .tripday .td-d{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);line-height:1.3}
+  .tripday .td-d b{display:block;font-family:Archivo,sans-serif;font-size:13px;font-weight:600;color:var(--ink)}
+  .tripday .td-loc{font-family:Archivo,sans-serif;font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--trip);margin-bottom:2px}
+  .tripday .td-t{font-weight:600;font-size:14px}
+  .tripday .td-n{font-size:13px;color:var(--ink-2);line-height:1.5;margin-top:3px}
+
+  /* standalone-only auth overlay */
+  #auth{position:fixed;inset:0;z-index:60;background:var(--paper);display:none;place-items:center;padding:24px}
+  #auth.on{display:grid}
+  .authcard{max-width:380px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:26px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
+  .authcard h2{margin:0;font-size:19px}
+  .authcard input{width:100%;padding:10px 12px;border-radius:7px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:14px}
+  .authcard input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .autherr{color:var(--crit);font-size:13px}
+
+  @media (prefers-reduced-motion:no-preference){.bar .fill{transition:width .4s ease}}
+  @media (max-width:560px){
+    .drow{grid-template-columns:44px 1fr;row-gap:4px}
+    .drow .dright{grid-column:2;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px}
+    table{min-width:440px}
+    .tripday{grid-template-columns:50px 1fr;gap:10px}
+    .count .n{font-size:31px}
+    .brand .name{font-size:16px}
+  }
 </style>
 </head>
 <body>
-<div class="app">
-  <div id="auth-screen" class="auth-screen"><div class="auth-card"><div class="emoji">🏃</div><h1>Taupo 100K Dashboard</h1><div class="sub">Connect Strava to track your training</div><div id="auth-error"></div><div class="input-group"><label>Client ID</label><input type="text" value="211921" disabled></div><div class="input-group"><label>Client Secret</label><input type="password" id="secret-input" placeholder="From strava.com/settings/api"><div class="input-hint">Stays in your browser only</div></div><button class="btn btn-strava" onclick="startAuth()">Connect to Strava →</button><div class="privacy"><strong>🔒</strong> Auth happens directly with Strava. Secret stays in localStorage.</div></div></div>
-  <div id="dashboard" class="hidden">
-    <div class="header"><div class="header-top"><div><h1>Taupo 100K Dashboard</h1><div class="subtitle" id="sync-info">Connected</div></div><div class="header-actions"><button class="btn btn-blue" id="btn-refresh" onclick="fetchActivities()">↻ Refresh</button><button class="btn btn-green" onclick="downloadJSON()">⬇ Export</button><button class="btn btn-ghost" onclick="disconnect()">✕</button></div></div><div class="race-strip" id="race-strip"></div></div>
-    <div class="stats" id="stats-grid"></div>
-    <div class="tabs" id="tabs-bar"></div>
-    <div id="tab-volume" class="card"><h2>Weekly Running Volume</h2><div class="chart-wrap"><canvas id="chart-volume"></canvas></div></div>
-    <div id="tab-pace" class="card hidden"><h2>Pace & Heart Rate Trends</h2><div class="chart-wrap"><canvas id="chart-pace"></canvas></div><div class="alert-amber"><strong>⚠ Easy Run HR Target:</strong> 136–151 bpm (Zone 2). Above 151 on easy days = too hard.</div></div>
-    <div id="tab-plan" class="card hidden"><h2>11-Week Plan — Target vs Actual</h2><div id="plan-bars"></div><div style="display:flex;gap:1rem;margin-top:0.75rem;font-size:0.7rem;color:#64748B;flex-wrap:wrap"><span>▬ ▬ Target</span><span style="color:#22C55E">■ On track</span><span style="color:#F59E0B">■ Under</span></div></div>
-    <div id="tab-runs" class="card hidden"><h2>Activity Log — Last 21 Days</h2><div style="overflow-x:auto"><table class="run-table"><thead><tr><th>Date</th><th>Run</th><th class="right">Dist</th><th class="right">Pace</th><th class="center">HR</th><th class="center">Zone</th><th class="right">Elev</th></tr></thead><tbody id="run-tbody"></tbody></table></div></div>
-    <div id="tab-upcoming" class="card hidden"><h2>Upcoming — Next 2 Weeks</h2><div id="upcoming-content"></div></div>
-    <div class="footer" id="footer"></div>
-  </div>
-</div>
-<script>
-const CLIENT_ID='211921',REDIRECT_URI='https://ariasruns.github.io/strava-exporter/';
-const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const RACES=[{name:"Waitomo 35km",date:"2026-04-18",dist:"35km"},{name:"Taniwha 42km",date:"2026-05-23",dist:"42km"},{name:"Taupo Trail Half",date:"2026-07-11",dist:"21km"},{name:"Taupo Marathon",date:"2026-08-01",dist:"42.2km"},{name:"TAUPO 100K",date:"2026-10-17",dist:"100km"}];
-const PLAN=[
-{wk:"Wk1",start:"2026-04-13",target:25,phase:"Race",days:[{d:1,t:"lift",s:"LIFT — Legs/Bench",dt:"Normal session"},{d:2,t:"easy",s:"Easy Run",dt:"5km easy. Save legs for Saturday",km:5},{d:3,t:"lift+run",s:"LIFT (Oly) + Easy Run",dt:"AM: Lift. LUNCH: Easy 4km",km:4},{d:4,t:"easy",s:"Easy + Strides",dt:"4km easy + 4x100m strides. Wake legs up",km:4},{d:5,t:"lift",s:"LIFT (DL — light)",dt:"Light deadlifts. No run — rest for race"},{d:6,t:"race",s:"🏁 WAITOMO 35KM",dt:"Start 5:45-6:00/km. Walk uphills. Eat every 30min. Don't blow up!",km:35},{d:0,t:"easy",s:"Recovery",dt:"Easy 3km or walk. Stretch",km:3}]},
-{wk:"Wk2",start:"2026-04-20",target:20,phase:"Recovery",days:[{d:1,t:"lift",s:"LIFT — Legs/Bench (moderate)",dt:"Assess legs post-race"},{d:2,t:"easy",s:"Easy Run",dt:"5km very easy. Recovery pace 6:00+/km",km:5},{d:3,t:"lift+run",s:"LIFT (Oly) + Easy Run",dt:"AM: Lift. LUNCH: Easy 4km",km:4},{d:4,t:"easy",s:"Easy Run",dt:"5km easy. No HIIT this week",km:5},{d:5,t:"lift+run",s:"LIFT (DL) + Easy Run",dt:"AM: Lift. LUNCH: Easy 3km",km:3},{d:6,t:"easy",s:"Easy Run",dt:"8km easy on trails if legs good",km:8},{d:0,t:"rest",s:"Rest",dt:"Full rest",km:0}]},
-{wk:"Wk3",start:"2026-04-27",target:35,phase:"Build",days:[{d:1,t:"lift",s:"LIFT — Legs/Bench",dt:"Normal"},{d:2,t:"quality",s:"Tempo Intervals",dt:"WU 10min → 4x4min @ 5:00/km w/ 2min jog → CD",km:8},{d:3,t:"lift+run",s:"LIFT (Oly) + Easy Run",dt:"AM: Lift. LUNCH: Easy 5km",km:5},{d:4,t:"run+hiit",s:"Easy Run + HIIT",dt:"Easy 6km. HIIT PM if fresh",km:6},{d:5,t:"lift+run",s:"LIFT (DL) + Easy Run",dt:"AM: Deadlifts. LUNCH: Easy 4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"15-18km on trails. Practise Taniwha nutrition plan",km:17},{d:0,t:"easy",s:"Easy Run",dt:"Recovery 5:50-6:15/km",km:5}]},
-{wk:"Wk4",start:"2026-05-04",target:40,phase:"Build",days:[{d:1,t:"lift",s:"LIFT — Legs/Bench",dt:"Normal"},{d:2,t:"quality",s:"Hill Repeats",dt:"WU 10min → 6x90s hills (HR 170-180) jog down → CD",km:8},{d:3,t:"lift+run",s:"LIFT (Oly) + Easy Run",dt:"AM: Lift. LUNCH: Easy 5km",km:5},{d:4,t:"run+hiit",s:"Easy Run + HIIT",dt:"Easy 7km. HIIT PM if fresh",km:7},{d:5,t:"lift+run",s:"LIFT (DL) + Easy Run",dt:"AM: Deadlifts. LUNCH: Easy 4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"20-22km on trails. Race pack, gels every 30min",km:21},{d:0,t:"easy",s:"Easy Run",dt:"Recovery 5:50-6:15/km",km:5}]},
-{wk:"Wk5",start:"2026-05-11",target:45,phase:"Peak",days:[{d:1,t:"lift",s:"LIFT — Legs/Bench",dt:"Normal"},{d:2,t:"quality",s:"Race Pace Run",dt:"WU 10min → 3x8min @ 5:30/km (Taniwha pace) w/ 3min easy → CD",km:10},{d:3,t:"lift+run",s:"LIFT (Oly) + Easy Run",dt:"AM: Lift. LUNCH: Easy 5km",km:5},{d:4,t:"easy",s:"Easy Run",dt:"7km easy. No HIIT — save legs",km:7},{d:5,t:"lift",s:"LIFT (DL — light)",dt:"Light. No run — rest for Saturday"},{d:6,t:"long",s:"LONG RUN — PEAK",dt:"25km on trails. Full race simulation. Walk uphills. Eat every 30min",km:25},{d:0,t:"easy",s:"Easy Run",dt:"Recovery 4km",km:4}]},
-{wk:"Wk6",start:"2026-05-18",target:47,phase:"Race",days:[{d:1,t:"lift",s:"LIFT — upper only (light)",dt:"No legs. 30min max"},{d:2,t:"easy",s:"Easy + Strides",dt:"4km easy + 4x100m strides",km:4},{d:3,t:"rest",s:"Rest",dt:"Full rest. Hydrate, eat, sleep",km:0},{d:4,t:"easy",s:"Shakeout",dt:"3km very easy + 2 strides",km:3},{d:5,t:"rest",s:"Rest / Travel",dt:"Travel to Mangakino. Rest. Carbs",km:0},{d:6,t:"race",s:"🏁 TANIWHA 42KM",dt:"Start 5:45-6:00/km. Walk uphills. Eat every 30min. Waikato River Trails!",km:42},{d:0,t:"rest",s:"REST",dt:"Recovery. Eat everything. You earned it",km:0}]},
-{wk:"Wk7",start:"2026-05-25",target:20,phase:"Recovery",days:[{d:1,t:"lift",s:"LIFT (moderate)",dt:"Easy session"},{d:2,t:"easy",s:"Easy Run",dt:"5km very easy recovery",km:5},{d:3,t:"lift+run",s:"LIFT + Easy Run",dt:"Easy 4km",km:4},{d:4,t:"easy",s:"Easy Run",dt:"5km easy",km:5},{d:5,t:"lift+run",s:"LIFT + Easy Run",dt:"Easy 3km",km:3},{d:6,t:"easy",s:"Easy Run",dt:"8km if legs good",km:8},{d:0,t:"rest",s:"Rest",dt:"Rest",km:0}]},
-{wk:"Wk8",start:"2026-06-01",target:30,phase:"Base",days:[{d:1,t:"lift",s:"LIFT — Legs/Bench",dt:"Normal"},{d:2,t:"quality",s:"Tempo Run",dt:"WU → 15min tempo @ 5:00-5:10/km → CD",km:8},{d:3,t:"lift+run",s:"LIFT + Easy Run",dt:"Easy 5km",km:5},{d:4,t:"run+hiit",s:"Easy Run + HIIT",dt:"Easy 5km",km:5},{d:5,t:"lift+run",s:"LIFT + Easy Run",dt:"Easy 4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"15km easy trails",km:15},{d:0,t:"easy",s:"Easy Run",dt:"Recovery",km:5}]},
-{wk:"Wk9",start:"2026-06-08",target:38,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Hill Repeats",dt:"8x90s hills",km:8},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"6km",km:6},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"18-20km trails",km:20},{d:0,t:"easy",s:"Easy",dt:"Recovery 5km",km:5}]},
-{wk:"Wk10",start:"2026-06-15",target:42,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo",dt:"20min tempo @ 5:00/km",km:9},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"22-25km trails",km:23},{d:0,t:"easy",s:"Easy",dt:"Recovery 5km",km:5}]},
-{wk:"Wk11",start:"2026-06-22",target:48,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo Intervals",dt:"5x5min @ 4:55/km",km:10},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"6km",km:6},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"25-28km trails. Back-to-back with Sunday",km:27},{d:0,t:"easy",s:"Easy Run",dt:"8km easy — back-to-back weekend",km:8}]},
-{wk:"Wk12",start:"2026-06-29",target:30,phase:"Deload",days:[{d:1,t:"lift",s:"LIFT (lighter)",dt:"Reduce 10-15%"},{d:2,t:"easy",s:"Easy Run",dt:"6km easy",km:6},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"easy",s:"Easy Run",dt:"6km",km:6},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"easy",s:"Easy Run",dt:"12km comfortable",km:12},{d:0,t:"rest",s:"Rest",dt:"Rest",km:0}]},
-{wk:"Wk13",start:"2026-07-06",target:35,phase:"Race",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"easy",s:"Easy + Strides",dt:"5km + strides",km:5},{d:3,t:"lift",s:"LIFT (light)",dt:"40min"},{d:4,t:"easy",s:"Easy Run",dt:"5km easy",km:5},{d:5,t:"rest",s:"Rest",dt:"Rest before race",km:0},{d:6,t:"race",s:"🏁 TAUPO TRAIL HALF",dt:"21km trail. Controlled effort. Test fitness",km:21},{d:0,t:"easy",s:"Recovery",dt:"Easy 3km or walk",km:3}]},
-{wk:"Wk14",start:"2026-07-13",target:45,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo",dt:"20min @ 5:00/km",km:9},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"25km",km:25},{d:0,t:"easy",s:"Easy",dt:"5km",km:5}]},
-{wk:"Wk15",start:"2026-07-20",target:35,phase:"Taper",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Short Tempo",dt:"10min tempo",km:7},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"easy",s:"Easy Run",dt:"5km",km:5},{d:5,t:"lift",s:"LIFT (light)",dt:"Light session"},{d:6,t:"long",s:"Long Run (easy)",dt:"15km easy",km:15},{d:0,t:"easy",s:"Easy",dt:"4km",km:4}]},
-{wk:"Wk16",start:"2026-07-27",target:47,phase:"Race",days:[{d:1,t:"lift",s:"LIFT (light)",dt:"Don't fatigue legs"},{d:2,t:"easy",s:"Easy + Strides",dt:"5km + strides",km:5},{d:3,t:"lift",s:"LIFT (light)",dt:"30min"},{d:4,t:"easy",s:"Shakeout",dt:"3km easy",km:3},{d:5,t:"rest",s:"Rest",dt:"Rest. Prep gear",km:0},{d:6,t:"race",s:"🏁 TAUPO MARATHON",dt:"42km road. Flat lakefront. Target sub-4:00?",km:42},{d:0,t:"rest",s:"REST",dt:"Recovery. Walk only",km:0}]},
-{wk:"Wk17",start:"2026-08-03",target:15,phase:"Recovery",days:[{d:1,t:"rest",s:"Rest",dt:"Full rest"},{d:2,t:"easy",s:"Walk or easy 3km",dt:"Very easy if anything",km:3},{d:3,t:"lift",s:"LIFT (very light)",dt:"Bodyweight or very light"},{d:4,t:"easy",s:"Easy Run",dt:"4km easy",km:4},{d:5,t:"rest",s:"Rest",dt:"Rest",km:0},{d:6,t:"easy",s:"Easy Run",dt:"8km if legs feel ok",km:8},{d:0,t:"rest",s:"Rest",dt:"Rest",km:0}]},
-{wk:"Wk18",start:"2026-08-10",target:25,phase:"Recovery",days:[{d:1,t:"lift",s:"LIFT (moderate)",dt:"Ease back in"},{d:2,t:"easy",s:"Easy Run",dt:"5km",km:5},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"easy",s:"Easy Run",dt:"5km",km:5},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"3km",km:3},{d:6,t:"easy",s:"Easy Run",dt:"10km easy",km:10},{d:0,t:"rest",s:"Rest",dt:"Rest",km:0}]},
-{wk:"Wk19",start:"2026-08-17",target:35,phase:"Base",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo",dt:"15min @ 5:05/km",km:8},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"6km",km:6},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"15km trails",km:15},{d:0,t:"easy",s:"Easy",dt:"5km",km:5}]},
-{wk:"Wk20",start:"2026-08-24",target:42,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Hills",dt:"8x90s hills",km:8},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"20km trails",km:20},{d:0,t:"easy",s:"Easy",dt:"5km",km:5}]},
-{wk:"Wk21",start:"2026-08-31",target:48,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo Intervals",dt:"4x6min @ 5:00/km",km:9},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"6km",km:6},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"25km trails. 100km nutrition practice",km:25},{d:0,t:"easy",s:"Easy",dt:"5km",km:5}]},
-{wk:"Wk22",start:"2026-09-07",target:52,phase:"Build",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo",dt:"25min @ 5:05/km",km:10},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"6km",km:6},{d:4,t:"run+hiit",s:"Easy + HIIT",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"28-30km trails. Back-to-back weekend",km:30},{d:0,t:"easy",s:"Easy",dt:"8km — back-to-back",km:8}]},
-{wk:"Wk23",start:"2026-09-14",target:30,phase:"Deload",days:[{d:1,t:"lift",s:"LIFT (lighter)",dt:"Reduce load"},{d:2,t:"easy",s:"Easy Run",dt:"6km",km:6},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"easy",s:"Easy Run",dt:"5km",km:5},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"easy",s:"Easy Run",dt:"15km comfortable",km:15},{d:0,t:"rest",s:"Rest",dt:"Rest",km:0}]},
-{wk:"Wk24",start:"2026-09-21",target:55,phase:"Peak",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Race Simulation",dt:"10km at 100km target pace (6:00-6:30/km) with walk breaks",km:10},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"6km",km:6},{d:4,t:"easy",s:"Easy Run",dt:"7km",km:7},{d:5,t:"lift",s:"LIFT (light)",dt:"No run — save for tomorrow"},{d:6,t:"long",s:"LONG RUN — PEAK",dt:"32-35km. Great Lake Trail recce. Full race kit + nutrition",km:34},{d:0,t:"easy",s:"Easy",dt:"5km recovery",km:5}]},
-{wk:"Wk25",start:"2026-09-28",target:50,phase:"Peak",days:[{d:1,t:"lift",s:"LIFT",dt:"Normal"},{d:2,t:"quality",s:"Tempo",dt:"20min @ 5:10/km",km:9},{d:3,t:"lift+run",s:"LIFT + Easy",dt:"5km",km:5},{d:4,t:"easy",s:"Easy Run",dt:"7km",km:7},{d:5,t:"lift+run",s:"LIFT + Easy",dt:"4km",km:4},{d:6,t:"long",s:"LONG RUN",dt:"30km trails. Last long one before taper",km:30},{d:0,t:"easy",s:"Easy",dt:"5km",km:5}]},
-{wk:"Wk26",start:"2026-10-05",target:30,phase:"Taper",days:[{d:1,t:"lift",s:"LIFT (light)",dt:"Reduced volume"},{d:2,t:"easy",s:"Easy + Strides",dt:"5km + 4x100m strides",km:5},{d:3,t:"lift",s:"LIFT (light)",dt:"30min upper body only"},{d:4,t:"easy",s:"Easy Run",dt:"5km easy",km:5},{d:5,t:"rest",s:"Rest",dt:"Rest",km:0},{d:6,t:"easy",s:"Easy Run",dt:"15km easy — keep legs ticking",km:15},{d:0,t:"easy",s:"Easy",dt:"5km easy",km:5}]},
-{wk:"Wk27",start:"2026-10-12",target:105,phase:"Race",days:[{d:1,t:"lift",s:"LIFT — upper only",dt:"No legs. 20min max"},{d:2,t:"easy",s:"Easy + Strides",dt:"4km + 4 strides",km:4},{d:3,t:"rest",s:"Rest",dt:"Rest. Hydrate. Eat well",km:0},{d:4,t:"easy",s:"Shakeout",dt:"3km very easy + 2 strides",km:3},{d:5,t:"rest",s:"Travel / Briefing",dt:"Drive to Taupo. Registration. Compulsory briefing. Weigh in. Prep drop bags",km:0},{d:6,t:"race",s:"🏁🏁 TAUPO ULTRA 100KM",dt:"5:30am start. Walk every uphill. Eat every 30min. You've trained for this. See you at Whakaipo Bay!",km:100},{d:0,t:"rest",s:"REST & CELEBRATE",dt:"You just ran 100km. Speight's at the finish. Legend",km:0}]}
-];
-const PC={Base:'#34D399',Deload:'#A5B4FC',China:'#FCD34D',Return:'#93C5FD',Build:'#34D399',Peak:'#F97316',Race:'#FCA5A5',Taper:'#93C5FD',Recovery:'#A5B4FC'};
-let S={secret:'',accessToken:null,refreshToken:null,expiresAt:null,athlete:null,activities:[],gymDates:[]},charts={},currentTab='volume';
 
 
-function lds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function fd(ds){const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MO[d.getMonth()]}
-function dn(ds){return DN[new Date(ds+'T00:00:00').getDay()]}
-function isWe(ds){const d=new Date(ds+'T00:00:00').getDay();return d===0||d===6}
-function fp(p){if(!p||p<=0)return'—';const m=Math.floor(p),s=Math.round((p-m)*60);return m+':'+(s<10?'0':'')+s}
-function hz(hr){if(!hr||hr<=0)return{z:'—',c:'#4B5563'};if(hr<136)return{z:'Z1',c:'#22C55E'};if(hr<=151)return{z:'Z2',c:'#15803D'};if(hr<=168)return{z:'Z3',c:'#EAB308'};if(hr<=185)return{z:'Z4',c:'#F97316'};return{z:'Z5',c:'#EF4444'}}
-function getDateForDay(weekStart,dayNum){const ws=new Date(weekStart+'T00:00:00');const off=dayNum===0?6:(dayNum-1);const dd=new Date(ws);dd.setDate(ws.getDate()+off);return dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0')}
+<div id="auth"><div class="authcard">
+  <h2>Connect Strava</h2>
+  <p class="small muted" style="margin:0">Client ID 211921. Paste your client secret from strava.com/settings/api. It stays in this browser and never leaves it.</p>
+  <input type="password" id="secret" placeholder="Client secret" autocomplete="off">
+  <div class="autherr" id="autherr"></div>
+  <button class="btn primary" id="authgo">Connect to Strava</button>
+  <button class="btn" id="authskip">Not now, just show the plan</button>
+</div></div>
 
-window.addEventListener('load',()=>{
-  const saved=localStorage.getItem('td_tokens'),secret=localStorage.getItem('td_secret'),params=new URLSearchParams(window.location.search),code=params.get('code');
-  buildTabs();
-  if(code&&secret){S.secret=secret;window.history.replaceState({},'',REDIRECT_URI);showDash();exchangeToken(code)}
-  else if(saved&&secret){try{Object.assign(S,{secret,...JSON.parse(saved)});showDash();const c=localStorage.getItem('td_activities'),g=localStorage.getItem('td_gym');if(c)S.activities=JSON.parse(c);if(g)S.gymDates=JSON.parse(g);renderAll();fetchActivities()}catch(e){console.error(e)}}
-});
-function buildTabs(){document.getElementById('tabs-bar').innerHTML=[['volume','Volume'],['pace','Pace & HR'],['plan','Plan vs Actual'],['runs','Activity Log'],['upcoming','Upcoming']].map(([k,l])=>`<button class="tab ${k===currentTab?'active':''}" onclick="switchTab('${k}',this)">${l}</button>`).join('')}
-function switchTab(n,el){currentTab=n;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');['volume','pace','plan','runs','upcoming'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==n));if(charts[n])setTimeout(()=>charts[n].resize(),50)}
-function startAuth(){const s=document.getElementById('secret-input').value.trim();if(!s)return;S.secret=s;localStorage.setItem('td_secret',s);window.location.href=`https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=read,activity:read_all&approval_prompt=auto`}
-async function exchangeToken(code){syncMsg('Connecting...');try{const r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,client_secret:S.secret,code,grant_type:'authorization_code'})});const d=await r.json();if(d.access_token){S.accessToken=d.access_token;S.refreshToken=d.refresh_token;S.expiresAt=d.expires_at;S.athlete=d.athlete;saveTokens();fetchActivities()}else{document.getElementById('auth-error').innerHTML=`<div class="status-error">${d.message||'Check Client Secret'}</div>`;showAuth()}}catch(e){document.getElementById('auth-error').innerHTML=`<div class="status-error">${e.message}</div>`;showAuth()}}
-async function rTok(){const r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID,client_secret:S.secret,refresh_token:S.refreshToken,grant_type:'refresh_token'})});const d=await r.json();if(d.access_token){S.accessToken=d.access_token;S.refreshToken=d.refresh_token;S.expiresAt=d.expires_at;saveTokens()}else throw new Error('Refresh failed')}
-async function fetchActivities(){const btn=document.getElementById('btn-refresh');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';syncMsg('Syncing...');try{if(S.expiresAt&&Date.now()/1000>S.expiresAt-60)await rTok();const after=Math.floor(new Date('2025-01-01').getTime()/1000);let page=1,all=[];while(true){const r=await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=200&page=${page}`,{headers:{Authorization:`Bearer ${S.accessToken}`}});if(r.status===401){await rTok();continue}const d=await r.json();if(!Array.isArray(d))throw new Error(d.message||'Error');all=all.concat(d);if(d.length<200)break;page++}
-S.activities=all.filter(a=>a.type==='Run').map(a=>({id:a.id,date:a.start_date_local.slice(0,10),name:a.name,dist_km:+(a.distance/1000).toFixed(2),duration_min:+(a.moving_time/60).toFixed(1),pace:a.distance>0?+((a.moving_time/60)/(a.distance/1000)).toFixed(2):null,avg_hr:a.average_heartrate||null,max_hr:a.max_heartrate||null,elevation:a.total_elevation_gain?Math.round(a.total_elevation_gain):0,suffer:a.suffer_score||null})).sort((a,b)=>a.date.localeCompare(b.date));
-S.gymDates=[...new Set(all.filter(a=>a.type==='WeightTraining'||a.type==='Workout').map(a=>a.start_date_local.slice(0,10)))];
-localStorage.setItem('td_activities',JSON.stringify(S.activities));localStorage.setItem('td_gym',JSON.stringify(S.gymDates));
-syncMsg(`${S.activities.length} runs • ${new Date().toLocaleTimeString()}`);renderAll()}catch(e){syncMsg('Error: '+e.message)}btn.disabled=false;btn.textContent='↻ Refresh'}
-function saveTokens(){localStorage.setItem('td_tokens',JSON.stringify({accessToken:S.accessToken,refreshToken:S.refreshToken,expiresAt:S.expiresAt,athlete:S.athlete}))}
-function disconnect(){['td_tokens','td_secret','td_activities','td_gym'].forEach(k=>localStorage.removeItem(k));S={secret:'',accessToken:null,refreshToken:null,expiresAt:null,athlete:null,activities:[],gymDates:[]};showAuth()}
-function downloadJSON(){const b=new Blob([JSON.stringify({exported_at:new Date().toISOString(),athlete:S.athlete?`${S.athlete.firstname} ${S.athlete.lastname}`:'Unknown',total_runs:S.activities.length,activities:S.activities,gym_dates:S.gymDates},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`strava_export_${new Date().toISOString().slice(0,10)}.json`;a.click()}
-function showAuth(){document.getElementById('auth-screen').classList.remove('hidden');document.getElementById('dashboard').classList.add('hidden')}
-function showDash(){document.getElementById('auth-screen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden')}
-function syncMsg(m){document.getElementById('sync-info').textContent=m}
-function renderAll(){renderRaces();renderStats();renderVolume();renderPace();renderPlan();renderRuns();renderUpcoming();document.getElementById('footer').textContent=`${S.activities.length} runs loaded • Export JSON → upload to Claude for analysis`}
-function renderRaces(){const today=new Date();document.getElementById('race-strip').innerHTML=RACES.map((r,i)=>{const d=Math.ceil((new Date(r.date)-today)/864e5);const c=i===RACES.length-1?'goal':d<=70?'next':'';return`<div class="race-chip ${c}"><div class="dist">${r.dist}</div><div class="name">${r.name}</div><div class="days">${d>0?d+'d':'Done'}</div></div>`}).join('')}
-function renderStats(){const w=gW(S.activities),l4=w.slice(-4);const ak=l4.length?(l4.reduce((s,w)=>s+w.km,0)/l4.length).toFixed(1):'—';const ar=l4.length?(l4.reduce((s,w)=>s+w.count,0)/l4.length).toFixed(1):'—';const hr=S.activities.slice(-20).filter(a=>a.avg_hr);const ah=hr.length?Math.round(hr.reduce((s,a)=>s+a.avg_hr,0)/hr.length):null;const yt=S.activities.filter(a=>a.date>='2026-01-01').reduce((s,a)=>s+a.dist_km,0).toFixed(0);const hc=ah&&ah>151?'amber':'green',hs=ah?(ah>151?'Z3 ⚠ Too high':'Z2 ✓'):'';document.getElementById('stats-grid').innerHTML=`<div class="stat"><div class="stat-label">Avg Weekly</div><div class="stat-value blue">${ak}km</div><div class="stat-sub">Last 4 weeks</div></div><div class="stat"><div class="stat-label">Runs/Week</div><div class="stat-value green">${ar}</div><div class="stat-sub">Last 4 weeks</div></div><div class="stat"><div class="stat-label">Avg Run HR</div><div class="stat-value ${hc}">${ah||'—'}${ah?' bpm':''}</div><div class="stat-sub">${hs}</div></div><div class="stat"><div class="stat-label">2026 Total</div><div class="stat-value purple">${yt}km</div><div class="stat-sub">Year to date</div></div>`}
-function renderVolume(){const w=gW(S.activities).slice(-16);if(charts.volume)charts.volume.destroy();charts.volume=new Chart(document.getElementById('chart-volume'),{type:'bar',data:{labels:w.map(x=>fd(x.key)),datasets:[{label:'Total km',data:w.map(x=>x.km),backgroundColor:'#3B82F6',borderRadius:4},{label:'Longest',data:w.map(x=>x.longest),backgroundColor:'#1E3A5F',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94A3B8',font:{size:11}}}},scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{color:'#1E293B'}},y:{ticks:{color:'#64748B',font:{size:10},callback:v=>v+'km'},grid:{color:'#1E293B'}}}}})}
-function renderPace(){const r=S.activities.slice(-20);if(charts.pace)charts.pace.destroy();charts.pace=new Chart(document.getElementById('chart-pace'),{type:'line',data:{labels:r.map(x=>fd(x.date)),datasets:[{label:'Pace',data:r.map(x=>x.pace),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.1)',fill:true,tension:0.3,yAxisID:'y',pointRadius:4,pointBackgroundColor:'#3B82F6'},{label:'Avg HR',data:r.map(x=>x.avg_hr),borderColor:'#EF4444',fill:false,tension:0.3,yAxisID:'y1',pointRadius:4,pointBackgroundColor:'#EF4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94A3B8',font:{size:11}}}},scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{color:'#1E293B'}},y:{position:'left',reverse:true,min:4,max:7,ticks:{color:'#64748B',font:{size:10},callback:v=>{const m=Math.floor(v),s=Math.round((v-m)*60);return m+':'+(s<10?'0':'')+s}},grid:{color:'#1E293B'},title:{display:true,text:'Pace',color:'#64748B'}},y1:{position:'right',min:100,max:210,ticks:{color:'#64748B',font:{size:10}},grid:{drawOnChartArea:false},title:{display:true,text:'HR',color:'#64748B'}}}},plugins:[{id:'z2',afterDraw(c){const y1=c.scales.y1,yp=y1.getPixelForValue(151),ctx=c.ctx;ctx.save();ctx.beginPath();ctx.setLineDash([6,4]);ctx.strokeStyle='#22C55E';ctx.lineWidth=1.5;ctx.moveTo(c.chartArea.left,yp);ctx.lineTo(c.chartArea.right,yp);ctx.stroke();ctx.font='10px Inter';ctx.fillStyle='#22C55E';ctx.fillText('Z2 ceiling (151)',c.chartArea.right-90,yp-6);ctx.restore()}}]})}
-function renderPlan(){const mx=60,today=new Date(),todayStr=lds(today);document.getElementById('plan-bars').innerHTML=PLAN.map(p=>{const we=new Date(p.start+'T00:00:00');we.setDate(we.getDate()+6);const act=S.activities.filter(a=>a.date>=p.start&&a.date<=(we.getFullYear()+'-'+String(we.getMonth()+1).padStart(2,'0')+'-'+String(we.getDate()).padStart(2,'0'))).reduce((s,a)=>s+a.dist_km,0);const ar=Math.round(act*10)/10,tp=(p.target/mx)*100,ap=Math.min((act/mx)*100,100);const col=act>=p.target*0.9?'#22C55E':act>0?'#F59E0B':'#334155';const isCur=todayStr>=p.start&&todayStr<=lds(we);return`<div class="plan-row" style="${isCur?'background:rgba(59,130,246,0.08);border-radius:6px;padding:0.5rem;margin:0 -0.5rem':''}"><div class="plan-week" style="color:${isCur?'#F1F5F9':'#94A3B8'}">${p.wk} <span style="font-size:0.6rem;color:${PC[p.phase]||'#64748B'}">${p.phase}</span></div><div class="plan-bar-wrap"><div class="plan-bar-target" style="width:${tp}%"></div><div class="plan-bar-actual" style="width:${ap}%;background:${col}"></div></div><div class="plan-nums">${ar>0?ar+'km':''} <span style="color:#475569">/ ${p.target}km</span></div></div>`}).join('')}
-function renderRuns(){
-const today=new Date();
-const startDate=new Date(today);startDate.setDate(today.getDate()-20);
-const todayStr=lds(today);
-const startStr=lds(startDate);
-
-// Build array of all 21 days
-let rows=[];
-for(let i=0;i<21;i++){
-  const d=new Date(today);d.setDate(today.getDate()-i);
-  const ds=lds(d);
-  const dayRuns=S.activities.filter(a=>a.date===ds);
-  const hasGym=S.gymDates.includes(ds);
-  const we=isWe(ds);
-  const dayName=dn(ds);
-  
-  if(dayRuns.length>0){
-    dayRuns.forEach(r=>{
-      const z=hz(r.avg_hr);
-      rows.push(`<tr class="${we?'weekend':''}">
-        <td><span class="day-badge ${we?'weekend':'weekday'}">${dayName}</span>${fd(ds)}</td>
-        <td style="font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}${hasGym?'<span class="gym-badge" title="Gym session">🏋️</span>':''}</td>
-        <td class="right" style="font-weight:700">${r.dist_km}km</td>
-        <td class="right">${fp(r.pace)}/km</td>
-        <td class="center">${r.avg_hr||'—'}</td>
-        <td class="center"><span class="zone-badge" style="background:${z.c}">${z.z}</span></td>
-        <td class="right" style="color:#64748B">${r.elevation?'↑'+r.elevation+'m':'—'}</td>
-      </tr>`);
-    });
-  } else {
-    // No run day
-    const restLabel=hasGym?'— No run':'— Rest day';
-    const restIcon=hasGym?'<span class="gym-badge">🏋️</span>':'<span style="font-size:0.75rem">😴</span>';
-    rows.push(`<tr class="${we?'weekend':''}" style="opacity:0.55">
-      <td><span class="day-badge ${we?'weekend':'weekday'}">${dayName}</span>${fd(ds)}</td>
-      <td style="color:#64748B">${restLabel} ${restIcon}</td>
-      <td class="right" style="color:#475569">—</td>
-      <td class="right" style="color:#475569">—</td>
-      <td class="center" style="color:#475569">—</td>
-      <td class="center">—</td>
-      <td class="right" style="color:#475569">—</td>
-    </tr>`);
-  }
-}
-document.getElementById('run-tbody').innerHTML=rows.join('')}
-function renderUpcoming(){
-const today=new Date();const todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-
-// "This week so far" summary
-let curWeek=null;
-for(let i=0;i<PLAN.length;i++){const ws=PLAN[i].start;const wed=new Date(ws+'T00:00:00');wed.setDate(wed.getDate()+6);const we=lds(wed);if(todayStr>=ws&&todayStr<=we){curWeek=PLAN[i];break}}
-let summaryHtml='';
-if(curWeek){
-  const thisWeekRuns=S.activities.filter(a=>a.date>=curWeek.start&&a.date<=todayStr);
-  const twKm=thisWeekRuns.reduce((s,a)=>s+a.dist_km,0);
-  const twCount=thisWeekRuns.length;
-  const twLongest=thisWeekRuns.length?Math.max(...thisWeekRuns.map(a=>a.dist_km)):0;
-  const twGym=S.gymDates.filter(d=>d>=curWeek.start&&d<=todayStr).length;
-  const pctTarget=curWeek.target>0?Math.round((twKm/curWeek.target)*100):0;
-  const pctColor=pctTarget>=90?'#22C55E':pctTarget>=50?'#F59E0B':'#64748B';
-  summaryHtml=`<div style="background:#0F172A;border:1px solid #334155;border-radius:0.75rem;padding:1rem;margin-bottom:1.25rem">
-    <div style="font-size:0.7rem;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">${curWeek.wk} — This week so far <span style="color:${PC[curWeek.phase]||'#64748B'}">(${curWeek.phase})</span></div>
-    <div style="display:flex;gap:1rem;flex-wrap:wrap">
-      <div style="text-align:center;min-width:70px"><div style="font-size:1.25rem;font-weight:800;color:#3B82F6">${twKm.toFixed(1)}km</div><div style="font-size:0.65rem;color:#475569">of ${curWeek.target}km</div></div>
-      <div style="text-align:center;min-width:50px"><div style="font-size:1.25rem;font-weight:800;color:#22C55E">${twCount}</div><div style="font-size:0.65rem;color:#475569">runs</div></div>
-      <div style="text-align:center;min-width:60px"><div style="font-size:1.25rem;font-weight:800;color:#A78BFA">${twLongest.toFixed(1)}km</div><div style="font-size:0.65rem;color:#475569">longest</div></div>
-      <div style="text-align:center;min-width:50px"><div style="font-size:1.25rem;font-weight:800;color:#F59E0B">${twGym}</div><div style="font-size:0.65rem;color:#475569">gym</div></div>
-      <div style="flex:1;min-width:100px;display:flex;flex-direction:column;justify-content:center"><div style="background:#1E293B;border-radius:1rem;height:8px;overflow:hidden"><div style="height:100%;border-radius:1rem;background:${pctColor};width:${Math.min(pctTarget,100)}%"></div></div><div style="font-size:0.65rem;color:${pctColor};margin-top:0.25rem;text-align:right">${pctTarget}% of target</div></div>
+<header class="top">
+  <div class="top-in">
+    <div class="brandrow">
+      <div class="brand">
+        <div class="name">Waihaha to Whakaipo</div>
+        <div class="sub">Taupō Ultra 100km · Sat 17 Oct 2026 · 5:30am</div>
+      </div>
+      <div class="count">
+        <div class="n mono" id="cd-n">—</div>
+        <div class="u" id="cd-u">days<br>to the gun</div>
+      </div>
     </div>
-  </div>`;
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="tab-today" aria-selected="true" aria-controls="v-today">Today</button>
+      <button role="tab" id="tab-block" aria-selected="false" aria-controls="v-block">The block</button>
+      <button role="tab" id="tab-trip" aria-selected="false" aria-controls="v-trip">The trip</button>
+      <button role="tab" id="tab-race" aria-selected="false" aria-controls="v-race">Race day</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="view" id="v-today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="hero">
+      <div class="hero-top">
+        <div class="eyebrow" id="t-date">—</div>
+        <div id="t-phase"></div>
+      </div>
+      <div class="hero-body">
+        <h1 class="sess-title" id="t-title">—</h1>
+        <p class="sess-sub" id="t-sub"></p>
+        <div class="metrics" id="t-metrics"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>This week</h2><div class="small mono muted" id="t-weeknums"></div></div>
+      <div class="weekstrip" id="t-week"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Where the week sits</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:14px">
+        <div id="t-progress"></div>
+        <div class="metrics" id="t-form"></div>
+        <div class="status" id="st-1">Loading…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Rules for this block</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <p class="note">Easy means easy. Keep easy runs under 151bpm and never let them drift over 156. If you can't hold a sentence you're stealing from Saturday.</p>
+        <p class="note">No intervals, no threshold sessions. You don't need speed to finish 100km. Every extra kilometre of easy aerobic running is worth more than a fast Tuesday and costs you less.</p>
+        <p class="note">Run the downhills deliberately on every long run from 19 September. Quad damage is what ends 100k races and downhill running is the only thing that trains for it.</p>
+        <p class="note crit">Getting sick again ends this race. You lost two weeks to a cough and you're about to spend four days shaking hands at an expo. Protecting your immune system now matters more than any single session.</p>
+        <p class="note warn">Drop the Wednesday or Friday session before you drop a long run. If something hurts for three runs in a row, stop and tell me.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-block" role="tabpanel" aria-labelledby="tab-block" hidden>
+    <div class="card">
+      <div class="card-h"><h2>Eight weeks, plan against actual</h2><div class="status" id="st-2">Loading…</div></div>
+      <div id="b-weeks"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Long run, week by week</h2></div>
+      <div class="card-b">
+        <figure class="chart">
+          <div class="chartbox"><svg class="plot" id="b-longplot" viewBox="0 0 760 250" role="img" aria-label="Planned long run distance by week: 18km this weekend, 22km in Amsterdam, a dip through the London expo, then 24km, a 38km peak on 26 September, 30km on 3 October, a 12km kit check and the 100km race"></svg></div>
+          <figcaption id="b-longcap"></figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Weekly volume</h2></div>
+      <div class="card-b">
+        <figure class="chart">
+          <div class="chartbox"><svg class="plot" id="b-volplot" viewBox="0 0 760 230" role="img" aria-label="Planned weekly running volume against actual kilometres run"></svg></div>
+          <figcaption>Planned weekly kilometres in teal, with your actual logged distance filled solid where a week has happened. Race week excludes the 100km itself.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>What this block is, honestly</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <p class="note"><b>You get one peak weekend, not three.</b> 38km on Saturday 26 September then 16km on the Sunday. That 54km back-to-back is the session that gets you to Whakaipo Bay. Everything before it is preparation and everything after it is taper.</p>
+        <p class="note"><b>Two weeks of the build happen at 35,000 feet and on hotel treadmills.</b> So the trip stops being a build and becomes maintenance: hold the frequency, hold the aerobic fitness, come home healthy. You still run six days a week over there, just shorter. The real work happens in the 30 days after you land.</p>
+        <p class="note"><b>The bank is not empty.</b> On 1 August you ran 22km with 503m of climbing on the Friday night and a 42km marathon in 3:53 the next morning, even splits, closing the last kilometre at 5:17. That back-to-back is already in your legs and it's a better 100k signal than the marathon time on its own.</p>
+        <p class="note warn"><b>What the disruption costs you is time, not the finish.</b> The cutoff is midnight, 18 and a half hours. Off this block I'd put you at 14 to 16 hours with sensible pacing. Chasing 13 from here is how you blow up at 60km.</p>
+        <p class="note crit"><b>The biggest risk is not fitness.</b> It's arriving home on 16 September sick or injured. Sixty hours in aircraft cabins, four days presenting at an expo, dinners most nights. Look after yourself over there and the last month takes care of itself.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-trip" role="tabpanel" aria-labelledby="tab-trip" hidden>
+    <div class="card">
+      <div class="card-h"><h2>1 to 16 September</h2><span class="pill trip"><span class="dot"></span>Maintenance</span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <p class="note trip"><b>You still train every day over there, just smaller.</b> Six runs a week, mostly 6 to 10km, plus two treadmill incline sessions. Frequency is what holds fitness on a trip like this: six short runs beat one heroic session and five blank days, every time.</p>
+        <p class="note trip"><b>Two sessions actually matter.</b> Sunday 6 September in Amsterdam, your one free morning, is a real 22km long run. And the Dubai treadmill blocks, where incline at walking pace is the closest thing you'll get to 1,853m of climbing. Hotel gyms are genuinely good for that and almost nobody uses them properly.</p>
+        <p class="note trip"><b>You are allowed a life.</b> Drinks in Amsterdam, four expo dinners. Just know each night out costs you the next morning's run and a day of recovery. Pick two and be honest about which.</p>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-h"><h2>Day by day</h2></div><div id="trip-days"></div></div>
+
+    <div class="grid2">
+      <div class="card"><div class="card-h"><h2>Flights</h2></div><div class="card-b"><ul class="checks" id="trip-fly"></ul></div></div>
+      <div class="card"><div class="card-h"><h2>Staying healthy</h2></div><div class="card-b"><ul class="checks" id="trip-health"></ul></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Treadmill sessions that are worth doing</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <p class="note"><b>The incline hike.</b> 10 to 15% at 5 to 6km/h, walking hard, 3 to 5 minutes on and 2 off. That's exactly what you'll do on every climb at Taupō, and a treadmill trains it better than flat road running does. Hold the rails only for balance, not to take weight off.</p>
+        <p class="note"><b>Do not run outside in Dubai.</b> 40 degrees gives you nothing but heat stress and a wasted day. There's no acclimatisation benefit worth having for an October race in the Central Plateau.</p>
+        <p class="note"><b>Treadmills read short.</b> Set 1% incline as your baseline for easy running so the effort matches outdoors, and don't worry if the distance looks generous.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Coming home</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <p class="note warn"><b>London to Auckland eastward across twelve hours is the worst direction there is.</b> Expect three or four genuinely bad days. You land Wednesday the 16th mid-afternoon and you'll feel like you've been hit by a bus.</p>
+        <p class="note">Wednesday: twenty minutes outside in daylight, normal bedtime, no running. Thursday: easy 6km whenever the body allows, even if that's 4pm. Friday: easy 8km, or nothing if you slept badly.</p>
+        <p class="note">Saturday the 19th is your first real long run back, 24km. If you've slept properly, run all of it. If you haven't, run 16km and don't argue with yourself about it. The 26th is the session that counts, not this one.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-race" role="tabpanel" aria-labelledby="tab-race" hidden>
+    <div class="card">
+      <div class="card-h"><h2>Splits and cutoffs</h2><div class="seg" id="r-target" role="group" aria-label="Target finish time"></div></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:14px">
+        <p class="small muted" style="margin:0;max-width:72ch">Clock times from a 5:30am start, built on a steady fade: the last kilometre runs about 50% slower than the first, which is how a well-paced 100k actually goes. Aid station time is baked in. Buffer is how far ahead of the cutoff you'd be.</p>
+        <div class="tblbox">
+          <table id="r-splits">
+            <thead><tr><th>Point</th><th>km</th><th>Elapsed</th><th>Clock</th><th>Leg pace</th><th>Cutoff buffer</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="xs muted" style="margin:0">Teal rows have a drop bag. Cutoffs are the organiser's: 10:30am at 29km, 2:00pm at 50km, 6:30pm at Kinloch (76km), 7:45pm at 82km, finish closes at midnight.</p>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h2>Eating and drinking</h2></div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:13px">
+          <div class="metrics">
+            <div class="metric"><div class="v mono">80-90</div><div class="k">g carbs / hr</div></div>
+            <div class="metric"><div class="v mono" id="f-total">—</div><div class="k">g carbs total</div></div>
+            <div class="metric"><div class="v mono">400-800</div><div class="k">mg sodium / hr</div></div>
+            <div class="metric"><div class="v mono">500-700</div><div class="k">ml fluid / hr</div></div>
+          </div>
+          <p class="note">Eat before you're hungry, drink before you're thirsty. The first 30km is where you bank the fuel that carries you through 70 to 90, and it's exactly the stretch where everyone forgets because they feel fine.</p>
+          <p class="note">On course: lollies, gingernuts, chips, pretzels, peanut butter and vegemite sandwiches, fruit, water, electrolyte and cola. The last two stations drop the sandwiches and oranges, so top up properly at 76km.</p>
+          <p class="note warn">Nothing new on race day. Every gel, chew and drink gets tested on the 26 September rehearsal first.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Drop bags</h2></div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:13px">
+          <p class="small muted" style="margin:0">Three bags: 29km, 50km and 76km. Pack each one for the version of you that arrives, not the one doing the packing.</p>
+          <div id="r-bags" style="display:flex;flex-direction:column;gap:14px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h2>Kit</h2></div>
+        <div class="card-b">
+          <ul class="checks" id="r-kit"></ul>
+          <p class="xs muted" style="margin:12px 0 0">Confirm the organiser's full mandatory list at the Friday briefing, 6pm at the Great Lake Centre.</p>
+        </div>
+      </div>
+      <div class="card"><div class="card-h"><h2>The last 48 hours</h2></div><div class="card-b"><ul class="checks" id="r-final"></ul></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>How to run it</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <p class="note">Walk every climb from kilometre one. Not from kilometre 40 when your legs make the decision for you. Power-hike hard, run the flats and the runnable descents, and you'll pass people all afternoon.</p>
+        <p class="note">The first 30km should feel embarrassingly slow. Around 7:15/km on the runnable ground, heart rate down in the 130s and 140s. If it feels good at 20km, that's the plan working, and it's still not permission to push.</p>
+        <p class="note">80% of this course is single trail with 1,853m of climbing. Your head needs to expect the ground to be slow, so don't panic when an early split looks soft.</p>
+        <p class="note">Kinloch at 76km is where the race actually starts. Sit down, eat properly, sort your feet, pick up the second light, leave inside ten minutes. Everything after that is 24km of stubbornness.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="xs muted" style="margin:24px 0 0;text-align:center">
+    Course, cutoff and aid station detail from taupoultra.co.nz.
+  </p>
+</div>
+
+<script>
+/* ===================== PLAN ===================== */
+const RACE_DATE="2026-10-17", RACE_START_MIN=330;
+
+const PLAN=[
+{w:0,d:"2026-08-24",t:"Weights, push",km:0,vert:0,lift:"Push"},
+{w:0,d:"2026-08-25",t:"Easy 7km",km:7,vert:0},
+{w:0,d:"2026-08-26",t:"Easy 5km",km:5,vert:0},
+{w:0,d:"2026-08-27",t:"Easy 5km",km:5,vert:0},
+{w:0,d:"2026-08-28",t:"Easy 6km",km:6,vert:0,lift:"Weights"},
+{w:0,d:"2026-08-29",t:"Long 18km",km:18,vert:200,long:true,note:"Your last proper long run for three weeks, so make it count. All easy, trail if you can get on it."},
+{w:0,d:"2026-08-30",t:"Easy 10km",km:10,vert:0,b2b:true,note:"Back-to-back on tired legs. Slow is the entire point."},
+
+{w:1,d:"2026-08-31",t:"Easy 8km",km:8,vert:0,lift:"Push",loc:"Tauranga"},
+{w:1,d:"2026-09-01",t:"Easy 10km, morning",km:10,vert:0,loc:"Tauranga",trip:true,note:"Run early. You fly out at 8pm and you're about to spend seventeen hours in a seat, so move the legs properly first."},
+{w:1,d:"2026-09-02",t:"Walk only",km:0,vert:0,loc:"Dubai",trip:true,note:"Land mid-morning after seventeen hours. Twenty minutes walking in daylight, then sleep on Dubai time. Nothing else."},
+{w:1,d:"2026-09-03",t:"Treadmill 45min",km:8,vert:100,loc:"Dubai",trip:true,note:"Hotel gym, early or after dark. 30min easy at 1% incline, then 15min at 10 to 12% walking hard at 5 to 6km/h. That incline block is your climbing training."},
+{w:1,d:"2026-09-04",t:"Treadmill 60min",km:9,vert:200,loc:"Dubai",trip:true,note:"20min easy, then 5 × 4min at 10 to 15% incline power-hiking with 2min flat between, then 10min easy. Do not run outside at 40 degrees, there's nothing to gain and heatstroke to lose."},
+{w:1,d:"2026-09-05",t:"Travel day",km:0,vert:0,loc:"Dubai to Amsterdam",trip:true,note:"Flying 8am, in that afternoon. Compression socks, walk the cabin every 90 minutes, 250ml of water an hour. Drinks tonight are fine, keep them modest, the trip's biggest session is tomorrow."},
+{w:1,d:"2026-09-06",t:"Long 22km",km:22,vert:100,long:true,loc:"Amsterdam",trip:true,note:"The most important session of the trip and your only free morning. Go early. Vondelpark then out along the Amstel is flat, safe and easy to navigate. Practise eating: 60g of carbs an hour from the 30 minute mark."},
+
+{w:2,d:"2026-09-07",t:"Easy 6km, early",km:6,vert:0,loc:"Amsterdam",trip:true,note:"Meetings and travel all day. Get out before it starts. Short, easy, no ambition."},
+{w:2,d:"2026-09-08",t:"Easy 8km, early",km:8,vert:0,loc:"Amsterdam to Manchester",trip:true,note:"Before the airport run. Amsterdam is flat and safe at that hour. Then another long travel day."},
+{w:2,d:"2026-09-09",t:"Easy 10km, streets",km:10,vert:0,loc:"London",trip:true,note:"Later start before the 3PL visit, so this is your best weekday of the trip. Get outside on real ground rather than a treadmill."},
+{w:2,d:"2026-09-10",t:"Treadmill 40min",km:7,vert:0,loc:"London expo",trip:true,note:"Expo day one. Hilton gym, early, before the stall. Standing all day is fatigue without training, so keep this genuinely easy."},
+{w:2,d:"2026-09-11",t:"Treadmill 45min",km:7,vert:150,loc:"London expo",trip:true,note:"20min easy, then 20min of incline blocks at 8 to 10%. Banking climbing while you're stuck indoors."},
+{w:2,d:"2026-09-12",t:"Easy 8km",km:8,vert:0,loc:"London expo",trip:true,note:"Get outside if the hotel is near a park. Hyde Park or the Thames path beat a treadmill every time."},
+{w:2,d:"2026-09-13",t:"Rest or 5km shakeout",km:0,vert:0,loc:"London expo",trip:true,note:"Four days on your feet on a hard floor is real fatigue. If you feel flat, take the day. Get your legs up tonight."},
+
+{w:3,d:"2026-09-14",t:"Easy 12km, morning",km:12,vert:0,loc:"London",trip:true,note:"Free day and your last European run. Twelve is the ceiling, not the target, because you're about to sit for thirty hours. Then walk, hydrate, and get on the plane."},
+{w:3,d:"2026-09-15",t:"In the air",km:0,vert:0,loc:"London to Dubai to Auckland",trip:true,note:"Business class means you can sleep flat, so use it. Set your watch to NZ time when you board and sleep on that schedule. Skip the alcohol on this one entirely."},
+{w:3,d:"2026-09-16",t:"Land, walk only",km:0,vert:0,loc:"Home, mid-afternoon",trip:true,note:"Twenty minutes outside in daylight, then a normal bedtime. No running. Eastward across twelve hours is the worst jet lag there is."},
+{w:3,d:"2026-09-17",t:"Easy 6km",km:6,vert:0,note:"Whenever the body allows, even if that's 4pm. Just move."},
+{w:3,d:"2026-09-18",t:"Easy 8km",km:8,vert:0,lift:"Push, light",note:"Or nothing at all if you slept badly. Judge it honestly."},
+{w:3,d:"2026-09-19",t:"Long 24km",km:24,vert:400,long:true,note:"First real long run back, on trail. If you've slept properly run all of it. If you haven't, run 16km and don't argue with yourself. Next Saturday is the one that counts."},
+{w:3,d:"2026-09-20",t:"Easy 10km",km:10,vert:0,b2b:true,note:"Back-to-back. Reminding the legs what tired feels like."},
+
+{w:4,d:"2026-09-21",t:"Easy 8km",km:8,vert:0,lift:"Push"},
+{w:4,d:"2026-09-22",t:"Hills 8km",km:8,vert:350,note:"Steepest ground you have. Power-hike two of the reps instead of running them, because that's what you'll do on the day."},
+{w:4,d:"2026-09-23",t:"Legs day",km:0,vert:0,lift:"Legs",note:"Last heavy leg session of the block. Nothing heavy after today."},
+{w:4,d:"2026-09-24",t:"Steady 7km",km:7,vert:0,note:"Short on purpose. Saturday is the biggest day of the build."},
+{w:4,d:"2026-09-25",t:"Rest",km:0,vert:0,note:"Full rest. Pack the drop bags tonight as if tomorrow is race day, because tomorrow is the rehearsal."},
+{w:4,d:"2026-09-26",t:"Long 38km",km:38,vert:700,long:true,note:"Dress rehearsal and the peak of the block. Race breakfast three hours out, race kit, race shoes, headlamp for the first hour, 80g of carbs an hour. Everything you'll use on 17 October gets tested today."},
+{w:4,d:"2026-09-27",t:"Easy 16km",km:16,vert:150,b2b:true,note:"54km across the weekend on wrecked legs. This is the session that gets you to Whakaipo Bay."},
+
+{w:5,d:"2026-09-28",t:"Rest",km:0,vert:0,note:"Nothing. Eat and sleep."},
+{w:5,d:"2026-09-29",t:"Easy 8km",km:8,vert:0,lift:"Push"},
+{w:5,d:"2026-09-30",t:"Easy 6km",km:6,vert:0,lift:"Legs, light",note:"Drop the load. Movement, not strength work."},
+{w:5,d:"2026-10-01",t:"Steady 8km",km:8,vert:0},
+{w:5,d:"2026-10-02",t:"Rest",km:0,vert:0,lift:"Pull"},
+{w:5,d:"2026-10-03",t:"Long 30km",km:30,vert:500,long:true,note:"Last long run of the block, on race-like ground. Fix anything the rehearsal exposed: a hotspot, a gel that didn't sit, a strap that rubbed."},
+{w:5,d:"2026-10-04",t:"Easy 12km",km:12,vert:0,b2b:true,note:"The last back-to-back. From here it's all downhill in the good sense."},
+
+{w:6,d:"2026-10-05",t:"Easy 6km",km:6,vert:0,lift:"Push, light",note:"Taper starts. No PRs in the gym from here, you have nothing to gain and a race to lose."},
+{w:6,d:"2026-10-06",t:"7km with efforts",km:7,vert:0,note:"5 × 2min a touch quicker than race effort. Keeps the legs sharp while the volume falls away."},
+{w:6,d:"2026-10-07",t:"Easy 5km",km:5,vert:0,lift:"Full body, light",note:"Last lift before the race."},
+{w:6,d:"2026-10-08",t:"Rest",km:0,vert:0},
+{w:6,d:"2026-10-09",t:"Easy 5km",km:5,vert:0},
+{w:6,d:"2026-10-10",t:"12km kit check",km:12,vert:150,long:true,note:"Full race kit and shoes, last 5km at race effort. Nothing rubs, nothing pinches, or you fix it this week."},
+{w:6,d:"2026-10-11",t:"Easy 4km",km:4,vert:0},
+
+{w:7,d:"2026-10-12",t:"Easy 5km",km:5,vert:0,note:"Relaxed. Your legs will feel flat and heavy. That's the taper working, not a problem."},
+{w:7,d:"2026-10-13",t:"Easy 5km",km:5,vert:0,note:"4 × 30s strides. Last real run."},
+{w:7,d:"2026-10-14",t:"Shakeout 3km",km:3,vert:0,note:"Or nothing at all if you'd rather."},
+{w:7,d:"2026-10-15",t:"Rest",km:0,vert:0,note:"Kit laid out. Drop bags packed and labelled for 29km, 50km and 76km."},
+{w:7,d:"2026-10-16",t:"Travel to Taupō",km:0,vert:0,note:"Registration 3:30 to 8pm at the Great Lake Centre. Briefing 6pm, go in person. Eat early, low fibre, familiar. Bed by 8:30pm, alarm 3:30am."},
+{w:7,d:"2026-10-17",t:"Race day",km:100,vert:1853,race:true,note:"5:30am, Waihaha carpark, State Highway 32. Headlamp on. Walk the first climb."},
+{w:7,d:"2026-10-18",t:"Nothing",km:0,vert:0,note:"Eat everything. You've earned it."}];
+
+const WEEK_META=[
+{w:0,name:"Last home weekend",note:"One good long run before you fly"},
+{w:1,name:"Dubai",note:"Treadmill incline, then the Amsterdam long run"},
+{w:2,name:"London expo",note:"Six short mornings, hold the frequency"},
+{w:3,name:"Home and re-entry",note:"Jet lag, then back on trail"},
+{w:4,name:"Peak",note:"Dress rehearsal, 54km weekend"},
+{w:5,name:"Last long run",note:"30km, then it's taper"},
+{w:6,name:"Taper",note:"Volume off, legs come back"},
+{w:7,name:"Race week",note:"Waihaha to Whakaipo"}];
+
+const AID=[
+{km:13,name:"Aid 1",cutoff:null},{km:24,name:"Aid 2",cutoff:null},
+{km:29,name:"Hingarae Rd",cutoff:300,bag:true},{km:40,name:"Aid 4",cutoff:null},
+{km:50,name:"Airstrip, halfway",cutoff:510,bag:true},{km:61,name:"Aid 6",cutoff:null},
+{km:69,name:"Aid 7",cutoff:null},{km:76,name:"Kinloch Domain",cutoff:780,bag:true},
+{km:82,name:"Headland loop",cutoff:855},{km:92,name:"Aid 10",cutoff:null},
+{km:100,name:"Whakaipo Bay, finish",cutoff:1110,finish:true}];
+
+const TARGETS=[{min:810,label:"13:30"},{min:870,label:"14:30"},{min:930,label:"15:30"},{min:990,label:"16:30"}];
+
+const BAGS=[
+{km:29,at:"Hingarae Rd",items:"Fuel for the next 21km, spare socks, sunscreen, a bottle of your own drink mix. You'll be about four hours in and still feeling good, so grab and go."},
+{km:50,at:"Airstrip, halfway",items:"The big one. Fresh socks, blister kit, chafe cream, restock all fuel, caffeine from here on, a cap or a warm layer depending on the day. Sit down for five minutes, not fifteen."},
+{km:76,at:"Kinloch Domain",items:"Second headlamp and spare batteries, warm layer for the dark, real food you actually want to eat, painkillers if you take them, final fuel for 24km. Feet sorted properly here or not at all."}];
+
+const KIT=[
+"Headlamp, charged. Mandatory at the start, and it's dark until about 6:30am.",
+"Second light for the final 24km. You'll leave Kinloch after 2:30pm, so this one is mandatory for you.",
+"Trail shoes with tread you trust. 80% of this course is single trail.",
+"Race vest with two soft flasks and room for the mandatory kit.",
+"Warm layer and a rain shell. October on the plateau does what it likes.",
+"Sunscreen, cap, sunglasses.",
+"Anti-chafe on everything, and again at 50km.",
+"Watch charged, plus a cable in the 50km bag if the battery won't hold 16 hours."];
+
+const FINAL48=[
+"Wednesday to Friday: carb load, 8 to 10g per kg, so 650 to 850g a day. Ease off fat and fibre.",
+"Thursday: drop bags packed and labelled. Kit laid out. Nothing left to think about.",
+"Friday 3:30 to 8pm: registration at the Great Lake Centre.",
+"Friday 6pm: race briefing, Great Lake Centre Theatre. Go in person.",
+"Friday dinner: early, familiar, low fibre. Nothing adventurous.",
+"Friday: bed by 8:30pm. Alarm 3:30am.",
+"Race morning: 100 to 150g of your tested breakfast three hours out. Sip electrolyte until the gun.",
+"Send Laura the plan and the tracking link before you drive up."];
+
+const TRIP_FLY=[
+"Compression socks on every leg, including the short hops.",
+"Get up and walk the cabin every 90 minutes you're awake. Non negotiable on the 30 hour trip home.",
+"About 250ml of water an hour in the air. Dehydration is what makes jet lag worse.",
+"Set your watch to the destination's time the moment you board, then eat and sleep on that clock.",
+"Business class means you can sleep flat, so treat the long legs as recovery blocks rather than dead time.",
+"Skip the alcohol on the flight home. That one costs you two days at the exact moment the build restarts.",
+"Ten minutes of calf raises, ankle circles and a hamstring stretch after you land, before you sit in a taxi."];
+
+const TRIP_HEALTH=[
+"Wash your hands constantly. Four days shaking hands at a health expo is a fortnight's worth of exposure.",
+"Sleep is the whole game. Seven hours beats any session you'd trade it for on this trip.",
+"Protein at every meal. Hotel and expo food will be worse than what you eat at home, so aim the plate at protein and fruit first.",
+"Keep the creatine going. It travels fine as powder.",
+"Vitamin D and zinc while you're indoors, jet lagged and around crowds.",
+"Get your legs up for ten minutes each night after standing on a hard expo floor all day.",
+"If you feel a cough starting, stop running immediately and rest. You know exactly what that costs you now."];
+
+/* ===================== HELPERS ===================== */
+const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseISO=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const DAYNAME=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtDay=s=>DAYNAME[parseISO(s).getDay()];
+const fmtDate=s=>{const d=parseISO(s);return d.getDate()+" "+MONTH[d.getMonth()]};
+const fmtLong=s=>{const d=parseISO(s);return DAYNAME[d.getDay()]+" "+d.getDate()+" "+MONTH[d.getMonth()]+" "+d.getFullYear()};
+const hm=m=>{const t=Math.round(m);return Math.floor(t/60)+":"+pad(t%60)};
+function clock(a){
+  let t=Math.round(RACE_START_MIN+a);
+  const dy=Math.floor(t/1440); t=((t%1440)+1440)%1440;
+  const h24=Math.floor(t/60), m=t%60, ap=h24<12?"am":"pm";
+  let h=h24%12; if(h===0)h=12;
+  return h+":"+pad(m)+ap+(dy>0?" +1":"");
+}
+const pace=(mins,km)=>{const s=Math.round(mins*60/km);return Math.floor(s/60)+":"+pad(s%60)};
+const todayISO=()=>iso(new Date());
+const weekOf=ds=>{const r=PLAN.find(p=>p.d===ds);return r?r.w:(ds<PLAN[0].d?0:7)};
+const weekDays=w=>PLAN.filter(p=>p.w===w);
+const weekPlanKm=w=>weekDays(w).filter(p=>!p.race).reduce((a,b)=>a+b.km,0);
+const weekPlanVert=w=>weekDays(w).filter(p=>!p.race).reduce((a,b)=>a+(b.vert||0),0);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ===================== DATA LAYER ===================== */
+/* Two sources, one shape. Inside claude.ai we use the Strava connector.
+   On GitHub Pages we use the Strava OAuth token in localStorage. */
+const DATA={mode:"init", status:"Loading…", byWeek:{}, runs:[], lastAt:null, hasData:false};
+
+function ingest(rows){
+  const byWeek={}, runs=[];
+  for(const r of rows){
+    const row=PLAN.find(p=>p.d===r.date);
+    if(!row) continue;
+    if(!byWeek[row.w]) byWeek[row.w]={km:0,vert:0,days:{},lifts:{}};
+    if(r.isRun){
+      byWeek[row.w].km+=r.km;
+      byWeek[row.w].vert+=r.vert;
+      byWeek[row.w].days[r.date]=(byWeek[row.w].days[r.date]||0)+r.km;
+      runs.push(r);
+    } else if(r.isLift){
+      byWeek[row.w].lifts[r.date]=true;
+    }
+  }
+  runs.sort((a,b)=>a.date<b.date?-1:1);
+  DATA.byWeek=byWeek; DATA.runs=runs; DATA.hasData=true;
 }
 
-// Next 14 days from today
-let h=summaryHtml;
-const endDate=new Date(today);endDate.setDate(today.getDate()+14);
-const endStr=endDate.getFullYear()+'-'+String(endDate.getMonth()+1).padStart(2,'0')+'-'+String(endDate.getDate()).padStart(2,'0');
+function setStatus(txt,btn){
+  DATA.status=txt;
+  const html=esc(txt)+(btn||"");
+  ["#st-1","#st-2"].forEach(s=>{const el=$(s);if(el)el.innerHTML=html});
+  $$(".js-refresh").forEach(b=>b.addEventListener("click",()=>{if(DATA.mode==="oauth")fetchStrava()}));
+  $$(".js-connect").forEach(b=>b.addEventListener("click",()=>showAuth(true)));
+}
 
-// Collect all plan days in the next 14 days
-let futureDays=[];
-PLAN.forEach(wk=>{
-  wk.days.forEach(day=>{
-    const dateStr=getDateForDay(wk.start,day.d);
-    if(dateStr>=todayStr&&dateStr<=endStr){
-      futureDays.push({dateStr,day,wk});
-    }
+/* --- source A: the claude.ai Strava connector --- */
+async function initConnector(){
+  let mcp=null;
+  try{ mcp=await window.claude.use("mcp"); }catch(e){ mcp=null; }
+  if(!mcp){ setStatus("Plan only. Open in claude.ai, or use the GitHub version, for live Strava."); return; }
+  DATA.mode="mcp";
+  mcp.watchTool("Strava","list_activities",
+    {first:100,range_start:"2026-08-24T00:00:00",range_end:"2026-10-19T00:00:00",ordering:"StartDateLocalAsc"},
+    ev=>{
+      if(ev.type==="data"){
+        const p=ev.result&&ev.result.payload;
+        const list=(p&&Array.isArray(p.activities))?p.activities:[];
+        ingest(list.map(a=>({
+          date:(a.start_local||"").slice(0,10),
+          km:((a.summary&&a.summary.distance)||0)/1000,
+          vert:(a.summary&&a.summary.elevation_gain)||0,
+          secs:(a.summary&&a.summary.moving_time)||0,
+          hr:null,
+          isRun:a.sport_type==="Run",
+          isLift:a.sport_type==="WeightTraining"
+        })));
+        DATA.lastAt=(ev.result.cache&&ev.result.cache.storedAt)||Date.now();
+        const w=new Date(DATA.lastAt);
+        setStatus("Strava, updated "+w.getHours()+":"+pad(w.getMinutes())+" "+fmtDate(iso(w)));
+      }else{
+        const c=ev.error&&ev.error.code;
+        if(c==="needs_reauth") setStatus("Strava needs reconnecting: claude.ai Settings, then Connectors.");
+        else if(c==="server_not_connected") setStatus("Strava isn't connected here. Add it under claude.ai Settings, then Connectors.");
+        else if(c==="selection_required") setStatus("More than one Strava connector. Pick one when claude.ai asks.");
+        else if(c==="blocked_by_policy"||c==="approval_required") setStatus("Strava access is blocked for this page.");
+        else if(c==="not_granted"||c==="capability_disabled"||c==="capability_removed") setStatus("Plan only. Live Strava needs the claude.ai viewer.");
+        else if(c==="tool_error") setStatus("Strava returned an error: "+(ev.error.message||"unknown"));
+        else if(DATA.mode!=="mcp"||!DATA.runs.length) setStatus("Strava is unreachable right now. The plan below is unaffected.");
+      }
+      renderAll();
+    },
+    {cache:{staleTime:120000},refetchInterval:600000});
+}
+
+/* --- source B: standalone Strava OAuth --- */
+const CLIENT_ID="211921", REDIRECT_URI="https://ariasruns.github.io/strava-exporter/";
+const S={secret:"",accessToken:null,refreshToken:null,expiresAt:null};
+
+function showAuth(on){ $("#auth").classList.toggle("on",!!on); }
+
+function initOAuth(){
+  DATA.mode="oauth";
+  const saved=localStorage.getItem("td_tokens"), secret=localStorage.getItem("td_secret");
+  const code=new URLSearchParams(location.search).get("code");
+  const cached=localStorage.getItem("td_rows");
+  if(cached){ try{ ingest(JSON.parse(cached)); }catch(e){} }
+
+  $("#authgo").addEventListener("click",()=>{
+    const s=$("#secret").value.trim();
+    if(!s){ $("#autherr").textContent="Paste your client secret first."; return; }
+    localStorage.setItem("td_secret",s);
+    location.href="https://www.strava.com/oauth/authorize?client_id="+CLIENT_ID
+      +"&redirect_uri="+encodeURIComponent(REDIRECT_URI)
+      +"&response_type=code&scope=read,activity:read_all&approval_prompt=auto";
   });
-});
-futureDays.sort((a,b)=>a.dateStr.localeCompare(b.dateStr));
 
-// Group by week for headers
-let lastWk='';
-futureDays.forEach(({dateStr,day,wk})=>{
-  if(wk.wk!==lastWk){
-    h+=`<div class="wk-header" style="color:${PC[wk.phase]||'#94A3B8'}">${wk.wk} — ${wk.phase} (target ${wk.target}km)</div>`;
-    lastWk=wk.wk;
+  $("#authskip").addEventListener("click",()=>{
+    showAuth(false);
+    setStatus("Plan only, Strava not connected.", ' <button class="btn js-connect" type="button">Connect Strava</button>');
+  });
+
+  if(code&&secret){ S.secret=secret; history.replaceState({},"",REDIRECT_URI); exchange(code); return; }
+  if(saved&&secret){
+    try{ Object.assign(S,{secret},JSON.parse(saved)); fetchStrava(); return; }catch(e){}
   }
-  const we=isWe(dateStr);const dayName=dn(dateStr);const isToday=dateStr===todayStr;
-  const actual=S.activities.find(a=>a.date===dateStr);
-  const gymDay=S.gymDates.includes(dateStr);
-  let tags=[];
-  if(day.t.includes('lift'))tags.push('<span class="upcoming-tag tag-lift">🏋️ Lift</span>');
-  if(day.t==='quality')tags.push('<span class="upcoming-tag tag-run">🏃 '+( day.km||0)+'km quality</span>');
-  else if(day.t==='long')tags.push('<span class="upcoming-tag tag-long">📏 '+(day.km||0)+'km long</span>');
-  else if(day.t==='race')tags.push('<span class="upcoming-tag tag-race">🏁 '+(day.km||0)+'km race</span>');
-  else if(day.t==='rest')tags.push('<span class="upcoming-tag tag-rest">😴 Rest</span>');
-  else if(day.t.includes('run')||day.t==='easy')tags.push('<span class="upcoming-tag tag-run">🏃 '+(day.km||0)+'km</span>');
-  if(day.t.includes('hiit'))tags.push('<span class="upcoming-tag tag-hiit">⚡ HIIT opt</span>');
-  if(actual)tags.push('<span class="upcoming-tag tag-done">✅ '+actual.dist_km+'km @ '+fp(actual.pace)+'/km</span>');
-  if(gymDay&&!day.t.includes('lift'))tags.push('<span class="upcoming-tag tag-lift">🏋️ Gym logged</span>');
-  h+=`<div class="upcoming-day ${we?'weekend':''} ${isToday?'is-today':''}">`+
-    `<div class="upcoming-date"><div class="day-name ${we?'wkend':'wkday'}">${dayName}</div><div class="day-num">${new Date(dateStr+'T00:00:00').getDate()}</div><div style="font-size:0.6rem;color:#475569">${MO[new Date(dateStr+'T00:00:00').getMonth()]}</div></div>`+
-    `<div class="upcoming-content"><div class="upcoming-session">${day.s}${isToday?' ← TODAY':''}</div><div class="upcoming-detail">${day.dt}</div><div class="upcoming-tags">${tags.join('')}</div></div></div>`;
-});
+  // No login wall: show the plan, offer the connection.
+  setStatus(cached?"Showing your last synced data.":"Plan only, Strava not connected.",
+    ' <button class="btn js-connect" type="button">Connect Strava</button>');
+}
 
-if(!futureDays.length)h+='<div style="text-align:center;color:#64748B;padding:2rem">No upcoming sessions found in plan</div>';
-document.getElementById('upcoming-content').innerHTML=h}
-function gW(acts){const w={};acts.forEach(a=>{const d=new Date(a.date),m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));const k=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0')+'-'+String(m.getDate()).padStart(2,'0');if(!w[k])w[k]={key:k,km:0,count:0,longest:0};w[k].km+=a.dist_km;w[k].count++;if(a.dist_km>w[k].longest)w[k].longest=a.dist_km});return Object.values(w).map(x=>({...x,km:+x.km.toFixed(1),longest:+x.longest.toFixed(1)})).sort((a,b)=>a.key.localeCompare(b.key))}
+async function tokenPost(body){
+  const r=await fetch("https://www.strava.com/oauth/token",{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  return r.json();
+}
+async function exchange(code){
+  setStatus("Connecting to Strava…");
+  try{
+    const d=await tokenPost({client_id:CLIENT_ID,client_secret:S.secret,code,grant_type:"authorization_code"});
+    if(!d.access_token){ $("#autherr").textContent=d.message||"Check the client secret."; showAuth(true); setStatus("Not connected."); return; }
+    Object.assign(S,{accessToken:d.access_token,refreshToken:d.refresh_token,expiresAt:d.expires_at});
+    saveTokens(); showAuth(false); fetchStrava();
+  }catch(e){ $("#autherr").textContent=e.message; showAuth(true); }
+}
+async function refresh(){
+  const d=await tokenPost({client_id:CLIENT_ID,client_secret:S.secret,refresh_token:S.refreshToken,grant_type:"refresh_token"});
+  if(!d.access_token) throw new Error("Strava refresh failed. Reconnect below.");
+  Object.assign(S,{accessToken:d.access_token,refreshToken:d.refresh_token,expiresAt:d.expires_at});
+  saveTokens();
+}
+function saveTokens(){
+  localStorage.setItem("td_tokens",JSON.stringify({accessToken:S.accessToken,refreshToken:S.refreshToken,expiresAt:S.expiresAt}));
+}
+async function fetchStrava(){
+  setStatus("Syncing Strava…");
+  try{
+    if(S.expiresAt&&Date.now()/1000>S.expiresAt-60) await refresh();
+    const after=Math.floor(parseISO("2026-08-20").getTime()/1000);
+    let page=1, all=[];
+    while(true){
+      const r=await fetch("https://www.strava.com/api/v3/athlete/activities?after="+after+"&per_page=200&page="+page,
+        {headers:{Authorization:"Bearer "+S.accessToken}});
+      if(r.status===401){ await refresh(); continue; }
+      const d=await r.json();
+      if(!Array.isArray(d)) throw new Error(d.message||"Strava error");
+      all=all.concat(d);
+      if(d.length<200) break;
+      page++;
+    }
+    const rows=all.map(a=>({
+      date:(a.start_date_local||"").slice(0,10),
+      km:(a.distance||0)/1000,
+      vert:a.total_elevation_gain||0,
+      secs:a.moving_time||0,
+      hr:a.average_heartrate||null,
+      isRun:a.sport_type==="Run"||a.type==="Run",
+      isLift:a.sport_type==="WeightTraining"||a.type==="WeightTraining"
+    }));
+    localStorage.setItem("td_rows",JSON.stringify(rows));
+    ingest(rows);
+    const n=new Date();
+    setStatus("Strava, updated "+n.getHours()+":"+pad(n.getMinutes()),
+      ' <button class="btn js-refresh" type="button">Refresh</button>');
+    showAuth(false);
+    renderAll();
+  }catch(e){
+    setStatus(e.message||"Could not reach Strava.", ' <button class="btn js-refresh" type="button">Retry</button>');
+    renderAll();
+  }
+}
+
+/* ===================== RENDER ===================== */
+function renderToday(){
+  const today=todayISO();
+  let row=PLAN.find(p=>p.d===today);
+  const before=today<PLAN[0].d, after=today>PLAN[PLAN.length-1].d;
+  if(!row) row=before?PLAN[0]:PLAN[PLAN.length-1];
+  const w=row.w, meta=WEEK_META[w];
+
+  $("#t-date").textContent=(before||after)?fmtLong(row.d)+" · plan day":fmtLong(today);
+  $("#t-phase").innerHTML=row.race
+    ?'<span class="pill race"><span class="dot"></span>Race day</span>'
+    :(row.trip?'<span class="pill trip"><span class="dot"></span>'+esc(row.loc||"Travelling")+'</span>'
+              :'<span class="pill acc"><span class="dot"></span>'+esc(meta.name)+'</span>');
+  $("#t-title").textContent=row.t;
+  $("#t-sub").textContent=row.note||(row.km>0?"Easy aerobic running. Nothing clever.":"Recovery is part of the plan, not a gap in it.");
+
+  const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{}};
+  const done=act.days[today]||0;
+  const mets=[];
+  if(row.km>0) mets.push({v:row.km+(row.race?"":"km"),k:row.race?"kilometres":"planned"});
+  if(row.vert) mets.push({v:row.vert+"m",k:"vert"});
+  if(row.lift) mets.push({v:row.lift,k:"lift"});
+  if(done>0) mets.push({v:done.toFixed(1)+"km",k:"logged today"});
+  if(!row.race) mets.push({v:Math.round((parseISO(RACE_DATE)-parseISO(row.d))/86400000),k:"days out"});
+  $("#t-metrics").innerHTML=mets.map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
+
+  const days=weekDays(w);
+  $("#t-week").innerHTML=days.map(p=>{
+    const logged=act.days[p.d]||0, lifted=!!act.lifts[p.d], past=p.d<today;
+    let right;
+    if(p.race) right='<span class="pill race">100km</span>';
+    else if(logged>0) right='<span class="dkm">'+logged.toFixed(1)+'km</span><span class="pill good"><span class="dot"></span>done</span>';
+    else if(lifted) right='<span class="pill good"><span class="dot"></span>lifted</span>';
+    else if(DATA.hasData&&past&&p.km>0) right='<span class="dkm muted">'+p.km+'km</span><span class="pill crit"><span class="dot"></span>missed</span>';
+    else if(DATA.hasData&&past) right='<span class="pill neut">rest taken</span>';
+    else if(p.km>0) right='<span class="dkm">'+p.km+'km</span>';
+    else right='<span class="pill neut">rest</span>';
+    const tags=[];
+    if(p.loc) tags.push(p.loc);
+    if(p.long) tags.push("long run");
+    if(p.b2b) tags.push("back-to-back");
+    if(p.lift) tags.push(p.lift.toLowerCase());
+    if(p.vert) tags.push(p.vert+"m vert");
+    return '<div class="drow'+(p.d===today?' is-today':'')+(p.race?' is-race':'')+'">'
+      +'<div class="dday"><b>'+fmtDay(p.d)+'</b>'+fmtDate(p.d)+'</div>'
+      +'<div class="dmain"><div class="dtitle">'+esc(p.t)+'</div>'
+      +(tags.length?'<div class="dnote">'+esc(tags.join(" · "))+'</div>':'')
+      +'</div><div class="dright">'+right+'</div></div>';
+  }).join("");
+
+  const planKm=weekPlanKm(w);
+  $("#t-weeknums").textContent=act.km.toFixed(0)+"km of "+planKm+"km";
+
+  const pct=planKm?Math.min(100,(act.km/planKm)*100):0;
+  let cls="warn",label="building";
+  if(!DATA.hasData){cls="";label="no data yet"}
+  else if(act.km>=planKm*0.95){cls="good";label="on plan"}
+  else if(act.km<planKm*0.5&&today>days[3].d){cls="crit";label="behind"}
+  $("#t-progress").innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px">'
+    +'<div class="eyebrow">'+esc(meta.name)+'</div><span class="pill '+cls+'"><span class="dot"></span>'+label+'</span></div>'
+    +'<div class="bar"><div class="fill '+cls+'" style="width:'+pct.toFixed(1)+'%"></div><div class="target" style="left:calc(100% - 1px)"></div></div>'
+    +'<div class="barlabels"><span>'+act.km.toFixed(1)+'km run</span><span>'+planKm+'km planned</span></div>';
+
+  // recent form
+  const r14=DATA.runs.filter(r=>r.date>iso(new Date(Date.now()-14*864e5)));
+  const km14=r14.reduce((a,b)=>a+b.km,0);
+  const hrs=r14.filter(r=>r.hr);
+  const avgHr=hrs.length?Math.round(hrs.reduce((a,b)=>a+b.hr,0)/hrs.length):null;
+  const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
+  const secs=r14.reduce((a,b)=>a+b.secs,0);
+  const avgPace=km14>0&&secs>0?pace(secs/60,km14):"—";
+  const form=[
+    {v:km14.toFixed(0)+"km",k:"last 14 days"},
+    {v:r14.length,k:"runs"},
+    {v:avgPace,k:"avg pace"},
+    {v:longest?longest.toFixed(0)+"km":"—",k:"longest in block"}
+  ];
+  if(avgHr) form.push({v:avgHr,k:avgHr>156?"avg hr, too high":"avg hr"});
+  $("#t-form").innerHTML=form.map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
+}
+
+function renderBlock(){
+  const today=todayISO(), nowW=weekOf(today);
+  $("#b-weeks").innerHTML=WEEK_META.map(meta=>{
+    const w=meta.w, days=weekDays(w);
+    const planKm=weekPlanKm(w), planVert=weekPlanVert(w);
+    const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{}};
+    const longRow=days.find(p=>p.long)||days.find(p=>p.race);
+    const future=days[0].d>today;
+    const pct=planKm?Math.min(112,(act.km/planKm)*100):0;
+    let cls="warn",label="in progress";
+    if(future){cls="";label="to come"}
+    else if(!DATA.hasData){cls="";label="planned"}
+    else if(act.km>=planKm*0.95){cls="good";label="hit"}
+    else if(days[6].d<today&&act.km<planKm*0.6){cls="crit";label="short"}
+    else if(days[6].d<today){cls="warn";label="under"}
+    const fill=act.km>0
+      ?'<div class="fill '+(w===7?"":cls)+'" style="width:'+pct.toFixed(1)+'%'+(w===7?';background:var(--race)':'')+'"></div>'
+      :'';
+    const bar='<div class="bar">'+fill+'<div class="target" style="left:calc(100% - 1px)"></div></div>';
+    const away=days.some(p=>p.trip);
+    return '<div class="wk'+(w===nowW?' is-now':'')+'">'
+      +'<div class="wk-h"><div class="wk-name">'+esc(meta.name)+'<span>'+fmtDate(days[0].d)+' – '+fmtDate(days[6].d)+'</span></div>'
+      +'<div style="display:flex;gap:6px">'+(away?'<span class="pill trip"><span class="dot"></span>away</span>':'')
+      +'<span class="pill '+(future?"neut":cls)+'"><span class="dot"></span>'+label+'</span></div></div>'
+      +bar
+      +'<div class="barlabels"><span>'+(future?'—':act.km.toFixed(1)+'km run')+'</span>'
+      +'<span>'+planKm+'km · '+planVert+'m vert'+(longRow?' · long '+longRow.km+'km':'')+'</span></div>'
+      +'<div class="dnote" style="margin-top:7px;font-size:12.5px;color:var(--ink-3)">'+esc(meta.note)+'</div></div>';
+  }).join("");
+  drawLongPlot(); drawVolPlot();
+}
+
+function drawLongPlot(){
+  const svg=$("#b-longplot"), W=760,H=250,ML=42,MR=18,MT=20,MB=42;
+  const pts=WEEK_META.map(m=>{
+    const days=weekDays(m.w), l=days.find(p=>p.long)||days.find(p=>p.race);
+    return {km:l?l.km:0,label:fmtDate((l||days[6]).d),race:!!(l&&l.race),trip:days.some(p=>p.trip)};
+  });
+  const x=i=>ML+(i/(pts.length-1))*(W-ML-MR), y=v=>MT+(1-v/100)*(H-MT-MB);
+  let s="";
+  const tI=pts.map((p,i)=>p.trip?i:-1).filter(i=>i>=0);
+  if(tI.length){
+    const x0=x(tI[0])-16, x1=x(tI[tI.length-1])+16;
+    s+='<rect x="'+x0.toFixed(1)+'" y="'+MT+'" width="'+(x1-x0).toFixed(1)+'" height="'+(H-MT-MB)+'" fill="var(--trip)" opacity="0.10"/>';
+    s+='<text class="axis" x="'+((x0+x1)/2).toFixed(1)+'" y="'+(MT+13)+'" text-anchor="middle" fill="var(--trip)">away</text>';
+  }
+  [0,25,50,75,100].forEach(v=>{
+    s+='<line class="grid" x1="'+ML+'" x2="'+(W-MR)+'" y1="'+y(v).toFixed(1)+'" y2="'+y(v).toFixed(1)+'"/>';
+    s+='<text class="axis" x="'+(ML-8)+'" y="'+(y(v)+3.5).toFixed(1)+'" text-anchor="end">'+v+'</text>';
+  });
+  const trend=pts.slice(0,pts.length-1);
+  const path=trend.map((p,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(p.km).toFixed(1)).join(" ");
+  s+='<path d="'+path+" L"+x(trend.length-1).toFixed(1)+" "+y(0).toFixed(1)+" L"+x(0).toFixed(1)+" "+y(0).toFixed(1)+' Z" fill="var(--accent)" opacity="0.10"/>';
+  s+='<path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  pts.forEach((p,i)=>{
+    const peak=p.km===38, col=p.race?"var(--race)":"var(--accent)";
+    s+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.km).toFixed(1)+'" r="'+((p.race||peak)?6:4.5)+'" fill="'+col+'" stroke="var(--card)" stroke-width="2"/>';
+    if(peak||p.race||i===0||p.km===22)
+      s+='<text class="lbl" x="'+x(i).toFixed(1)+'" y="'+(y(p.km)-12).toFixed(1)+'" text-anchor="middle">'+p.km+'km</text>';
+    s+='<text class="axis" x="'+x(i).toFixed(1)+'" y="'+(H-MB+17)+'" text-anchor="middle">'+p.label+'</text>';
+  });
+  s+='<text class="axis" x="'+ML+'" y="'+(MT-6)+'" text-anchor="start">km</text>';
+  svg.innerHTML=s;
+  $("#b-longcap").textContent="Saturday long run by week. 18km this weekend, 22km in Amsterdam on your one free morning, then a dip through the London expo before the real build: 24km, a 38km peak on 26 September, 30km on 3 October, and a 12km kit check. The purple point is race day.";
+}
+
+function drawVolPlot(){
+  const svg=$("#b-volplot"), W=760,H=230,ML=42,MR=18,MT=18,MB=42;
+  const today=todayISO();
+  const rows=WEEK_META.map(m=>({
+    plan:weekPlanKm(m.w),
+    act:(DATA.byWeek[m.w]||{km:0}).km,
+    label:fmtDate(weekDays(m.w)[0].d),
+    future:weekDays(m.w)[0].d>today
+  }));
+  const max=Math.max(90,...rows.map(r=>Math.max(r.plan,r.act)));
+  const bw=(W-ML-MR)/rows.length;
+  const y=v=>MT+(1-v/max)*(H-MT-MB);
+  let s="";
+  [0,25,50,75].forEach(v=>{
+    if(v>max)return;
+    s+='<line class="grid" x1="'+ML+'" x2="'+(W-MR)+'" y1="'+y(v).toFixed(1)+'" y2="'+y(v).toFixed(1)+'"/>';
+    s+='<text class="axis" x="'+(ML-8)+'" y="'+(y(v)+3.5).toFixed(1)+'" text-anchor="end">'+v+'</text>';
+  });
+  rows.forEach((r,i)=>{
+    const x0=ML+i*bw+3, w=bw-8;
+    const yp=y(r.plan), ya=y(r.act), base=y(0);
+    s+='<rect x="'+x0.toFixed(1)+'" y="'+yp.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+(base-yp).toFixed(1)+'" rx="4" fill="var(--accent)" opacity="0.16"/>';
+    if(r.act>0)
+      s+='<rect x="'+(x0+2).toFixed(1)+'" y="'+ya.toFixed(1)+'" width="'+(w-4).toFixed(1)+'" height="'+(base-ya).toFixed(1)+'" rx="4" fill="var(--accent)"/>';
+    s+='<text class="lbl" x="'+(x0+w/2).toFixed(1)+'" y="'+(yp-7).toFixed(1)+'" text-anchor="middle">'+r.plan+'</text>';
+    s+='<text class="axis" x="'+(x0+w/2).toFixed(1)+'" y="'+(H-MB+17)+'" text-anchor="middle">'+r.label+'</text>';
+  });
+  s+='<text class="axis" x="'+ML+'" y="'+(MT-4)+'" text-anchor="start">km / week</text>';
+  svg.innerHTML=s;
+}
+
+function renderTrip(){
+  const today=todayISO();
+  $("#trip-days").innerHTML=PLAN.filter(p=>p.trip).map(p=>{
+    const km=p.km>0?'<span class="pill acc">'+p.km+'km</span>':'<span class="pill neut">no run</span>';
+    return '<div class="tripday'+(p.d===today?' is-today':'')+'">'
+      +'<div class="td-d"><b>'+fmtDay(p.d)+'</b>'+fmtDate(p.d)+'</div>'
+      +'<div><div class="td-loc">'+esc(p.loc||"")+'</div>'
+      +'<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span class="td-t">'+esc(p.t)+'</span>'+km+'</div>'
+      +(p.note?'<div class="td-n">'+esc(p.note)+'</div>':'')+'</div></div>';
+  }).join("");
+  const mk=a=>a.map(t=>'<li><span class="mk"></span><span class="small">'+esc(t)+'</span></li>').join("");
+  $("#trip-fly").innerHTML=mk(TRIP_FLY);
+  $("#trip-health").innerHTML=mk(TRIP_HEALTH);
+  wireChecks();
+}
+
+let targetMin=870;
+function splitsFor(total){
+  let u=0; const cum=[0];
+  for(let d=1;d<=100;d++){u+=1+0.5*d/100;cum.push(u)}
+  return cum.map(c=>c*(total/u));
+}
+function wireChecks(){
+  $$("ul.checks li").forEach(li=>{
+    if(li.dataset.wired)return; li.dataset.wired="1";
+    li.style.cursor="pointer"; li.tabIndex=0;
+    li.setAttribute("role","checkbox"); li.setAttribute("aria-checked","false");
+    const toggle=()=>{
+      const m=$(".mk",li), on=m.classList.toggle("on");
+      m.textContent=on?"✓":""; li.setAttribute("aria-checked",String(on));
+      li.style.opacity=on?"0.55":"1";
+    };
+    li.addEventListener("click",toggle);
+    li.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();toggle()}});
+  });
+}
+function renderRace(){
+  $("#r-target").innerHTML=TARGETS.map(t=>'<button type="button" data-min="'+t.min+'" aria-pressed="'+(t.min===targetMin)+'">'+t.label+'</button>').join("");
+  $$("#r-target button").forEach(b=>b.addEventListener("click",()=>{targetMin=Number(b.dataset.min);renderRace()}));
+  const cum=splitsFor(targetMin);
+  let pk=0,pm=0;
+  $("#r-splits tbody").innerHTML=AID.map(a=>{
+    const el=cum[a.km], legMin=el-pm, legKm=a.km-pk;
+    let buf='<span class="muted">—</span>';
+    if(a.cutoff!=null){
+      const b=a.cutoff-el, cls=b>=90?"good":(b>=30?"warn":"crit");
+      buf='<span class="pill '+cls+'">'+(b>=0?"+":"−")+hm(Math.abs(b))+'</span>';
+    }
+    const r='<tr class="'+(a.bag?"dropbag":"")+(a.finish?" finish":"")+'">'
+      +'<td>'+esc(a.name)+(a.bag?' <span class="pill acc">bag</span>':'')+'</td><td>'+a.km+'</td>'
+      +'<td>'+hm(el)+'</td><td>'+clock(el)+'</td><td>'+pace(legMin,legKm)+'</td><td>'+buf+'</td></tr>';
+    pk=a.km;pm=el;return r;
+  }).join("");
+  $("#f-total").textContent=Math.round((targetMin/60)*85/10)*10;
+  $("#r-bags").innerHTML=BAGS.map(b=>'<div><div class="eyebrow">'+b.km+'km · '+esc(b.at)+'</div><div class="small" style="color:var(--ink-2);margin-top:3px">'+esc(b.items)+'</div></div>').join("");
+  const mk=a=>a.map(t=>'<li><span class="mk"></span><span class="small">'+esc(t)+'</span></li>').join("");
+  $("#r-kit").innerHTML=mk(KIT); $("#r-final").innerHTML=mk(FINAL48);
+  wireChecks();
+}
+
+function renderCountdown(){
+  const d=Math.round((parseISO(RACE_DATE)-parseISO(todayISO()))/86400000);
+  if(d>0){$("#cd-n").textContent=d;$("#cd-u").innerHTML=(d===1?"day":"days")+"<br>to the gun"}
+  else if(d===0){$("#cd-n").textContent="0";$("#cd-u").innerHTML="today<br>go well"}
+  else{$("#cd-n").textContent=Math.abs(d);$("#cd-u").innerHTML="days<br>since Whakaipo"}
+}
+function renderAll(){renderCountdown();renderToday();renderBlock()}
+
+(function tabs(){
+  const map={"tab-today":"v-today","tab-block":"v-block","tab-trip":"v-trip","tab-race":"v-race"};
+  Object.keys(map).forEach(id=>{
+    $("#"+id).addEventListener("click",()=>{
+      Object.keys(map).forEach(k=>{
+        const sel=k===id;
+        $("#"+k).setAttribute("aria-selected",String(sel));
+        $("#"+map[k]).hidden=!sel;
+      });
+      window.scrollTo(0,0);
+    });
+  });
+})();
+
+renderAll(); renderTrip(); renderRace();
+if(window.claude&&typeof window.claude.use==="function"){ setStatus("Reading Strava…"); initConnector(); }
+else { initOAuth(); }
 </script>
+
 </body>
 </html>
