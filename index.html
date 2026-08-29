@@ -104,6 +104,11 @@
   .pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
   .pill.race{background:var(--race-bg);color:var(--race)}
   .pill.trip{background:var(--trip-bg);color:var(--trip)}
+  .pill.dbl{background:var(--accent);color:#fff;font-weight:600;letter-spacing:.04em}
+  :root[data-theme="dark"] .pill.dbl{color:#06181a}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.dbl{color:#06181a}}
+  .drow.is-double::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:repeating-linear-gradient(135deg,var(--accent) 0 5px,transparent 5px 10px)}
   .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
 
   .hero{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
@@ -304,9 +309,21 @@
     <div class="card">
       <div class="card-h"><h2>This week</h2><div class="small mono muted" id="t-weeknums"></div></div>
       <div class="weekstrip" id="t-week"></div>
-      <div class="card-b" style="border-top:1px solid var(--line-soft);display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" type="button" id="t-copy">📋 Copy this week for Claude</button>
-        <span class="xs muted" id="t-copied" style="align-self:center"></span>
+      <div class="card-b" style="border-top:1px solid var(--line-soft);display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn primary" type="button" id="t-copy">📋 Copy this week for Claude</button>
+          <button class="btn" type="button" id="t-paste">📥 Paste an update</button>
+          <span class="xs muted" id="t-copied"></span>
+        </div>
+        <div id="t-pastewrap" hidden style="display:flex;flex-direction:column;gap:8px">
+          <textarea id="t-pastebox" placeholder="Paste what Claude sends back here, including the sync block, then hit Apply." style="width:100%;min-height:110px;padding:10px;border-radius:7px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.5"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn primary" type="button" id="t-apply">Apply</button>
+            <button class="btn" type="button" id="t-pastecancel">Cancel</button>
+            <span class="xs muted" id="t-applied"></span>
+          </div>
+        </div>
+        <span class="xs muted" id="t-planstamp"></span>
       </div>
     </div>
 
@@ -484,7 +501,7 @@
 /* ===================== PLAN ===================== */
 const RACE_DATE="2026-10-17", RACE_START_MIN=330;
 
-const PLAN=[
+const PLAN_BASE=[
 {w:0,d:"2026-08-24",t:"Weights, push",km:0,vert:0,lift:"Push"},
 {w:0,d:"2026-08-25",t:"Easy 7km",km:7,vert:0},
 {w:0,d:"2026-08-26",t:"Easy 5km",km:5,vert:0},
@@ -669,11 +686,59 @@ function lsSet(k,v){ try{localStorage.setItem(k,JSON.stringify(v))}catch(e){} }
 
 let NOTES=lsGet("td_notes",{})||{};
 let TICKS=lsGet("td_ticks",{})||{};
+let PATCH=lsGet("td_patch",{})||{};
+let PATCH_STAMP=lsGet("td_patch_stamp",null);
 let openNote=null;
+
+/* The live plan is the base plan with any revisions Claude has sent applied
+   on top, so a plan change travels as text and never needs a redeploy. */
+let PLAN=[];
+function applyPatch(){
+  PLAN=PLAN_BASE.map(p=>Object.assign({},p,PATCH[p.d]||{}));
+}
+applyPatch();
+
+const SYNC_TAG="TAUPO-SYNC";
+function syncBlock(){
+  return "```"+SYNC_TAG+"\n"+JSON.stringify({
+    v:1, stamp:new Date().toISOString().slice(0,10),
+    notes:NOTES, ticks:TICKS, patch:PATCH
+  })+"\n```";
+}
+function applySync(obj){
+  const changed=[];
+  if(obj.notes&&typeof obj.notes==="object"){
+    let n=0;
+    Object.keys(obj.notes).forEach(k=>{ if(obj.notes[k]&&NOTES[k]!==obj.notes[k]){NOTES[k]=String(obj.notes[k]);n++} });
+    if(n) changed.push(n+" note"+(n===1?"":"s"));
+  }
+  if(obj.ticks&&typeof obj.ticks==="object"){
+    const keys=Object.keys(obj.ticks);
+    keys.forEach(k=>{ TICKS[k]=1 });
+    if(keys.length) changed.push("checklists");
+  }
+  if(obj.patch&&typeof obj.patch==="object"){
+    const days=Object.keys(obj.patch).length;
+    PATCH=obj.patch; applyPatch();
+    PATCH_STAMP=obj.stamp||new Date().toISOString().slice(0,10);
+    lsSet("td_patch",PATCH); lsSet("td_patch_stamp",PATCH_STAMP);
+    if(days) changed.push(days+" day"+(days===1?"":"s")+" of the plan revised");
+  }
+  lsSet("td_notes",NOTES); lsSet("td_ticks",TICKS);
+  return changed;
+}
+function parseSync(text){
+  const m=text.match(new RegExp("```\\s*"+SYNC_TAG+"\\s*([\\s\\S]*?)```"))
+        || text.match(/\{[\s\S]*"(?:notes|patch|ticks)"[\s\S]*\}/);
+  if(!m) return null;
+  try{ return JSON.parse((m[1]||m[0]).trim()) }catch(e){ return null }
+}
 
 /* ===================== DATA LAYER ===================== */
 /* Two sources, one shape. Inside claude.ai we use the Strava connector.
    On GitHub Pages we use the Strava OAuth token in localStorage. */
+/* anything that isn't a run but still costs you recovery */
+const GYM=["WeightTraining","Workout","HighIntensityIntervalTraining","Rowing","Crossfit","Elliptical","StairStepper"];
 const DATA={mode:"init", status:"Loading…", byWeek:{}, runs:[], lastAt:null, hasData:false};
 
 function ingest(rows){
@@ -722,7 +787,7 @@ async function initConnector(){
           secs:(a.summary&&a.summary.moving_time)||0,
           hr:null,
           isRun:a.sport_type==="Run",
-          isLift:a.sport_type==="WeightTraining"
+          isLift:GYM.indexOf(a.sport_type)>=0
         })));
         DATA.lastAt=(ev.result.cache&&ev.result.cache.storedAt)||Date.now();
         const w=new Date(DATA.lastAt);
@@ -839,7 +904,7 @@ async function fetchStrava(){
       secs:a.moving_time||0,
       hr:a.average_heartrate||null,
       isRun:a.sport_type==="Run"||a.type==="Run",
-      isLift:a.sport_type==="WeightTraining"||a.type==="WeightTraining"
+      isLift:GYM.indexOf(a.sport_type)>=0||a.type==="WeightTraining"
     }));
     lsSet("td_rows",rows);
     ingest(rows);
@@ -887,8 +952,9 @@ function renderToday(){
     const st=sType(p), meta=STYPE[st];
     let right;
     if(p.race) right='<span class="pill race">100km</span>';
+    else if(logged>0&&lifted) right='<span class="dkm">'+logged.toFixed(1)+'km</span><span class="pill dbl">🏃🏋️ double day</span>';
     else if(logged>0) right='<span class="dkm">'+logged.toFixed(1)+'km</span><span class="pill good"><span class="dot"></span>done</span>';
-    else if(lifted) right='<span class="pill good"><span class="dot"></span>lifted</span>';
+    else if(lifted) right='<span class="pill good">🏋️ gym only</span>';
     else if(DATA.hasData&&past&&p.km>0) right='<span class="dkm muted">'+p.km+'km</span><span class="pill crit"><span class="dot"></span>missed</span>';
     else if(DATA.hasData&&past) right='<span class="pill neut">rest taken</span>';
     else if(p.km>0) right='<span class="dkm">'+p.km+'km</span>';
@@ -899,7 +965,8 @@ function renderToday(){
     if(p.vert) tags.push(p.vert+"m vert");
     const note=NOTES[p.d]||"";
     const open=openNote===p.d;
-    return '<div class="drow'+(p.d===today?' is-today':'')+(p.race?' is-race':'')+'" style="--sc:var('+meta.v+')">'
+    return '<div class="drow'+(p.d===today?' is-today':'')+(p.race?' is-race':'')
+      +((logged>0&&lifted)?' is-double':'')+'" style="--sc:var('+meta.v+')">'
       +'<div class="dday"><b>'+fmtDay(p.d)+'</b>'+fmtDate(p.d)+'</div>'
       +'<div class="dmain"><div class="dtitle"><span class="emo">'+meta.emo+'</span>'+esc(p.t)+'</div>'
       +'<div class="dnote"><span class="stype">'+esc(tags[0])+'</span>'
@@ -927,6 +994,9 @@ function renderToday(){
 
   const planKm=weekPlanKm(w);
   $("#t-weeknums").textContent=act.km.toFixed(0)+"km of "+planKm+"km";
+  $("#t-planstamp").textContent=PATCH_STAMP
+    ? "Plan revised "+fmtDate(PATCH_STAMP)+", "+Object.keys(PATCH).length+" day(s) changed."
+    : "Plan v2, unrevised. Notes live on this device only, so send them through weekly.";
 
   const pct=planKm?Math.min(100,(act.km/planKm)*100):0;
   let cls="warn",label="building";
@@ -974,12 +1044,18 @@ function renderToday(){
   const kmAll=DATA.runs.reduce((a,b)=>a+b.km,0);
   const hoursAll=secsAll/3600;
   const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
+  let doubles=0;
+  Object.keys(DATA.byWeek).forEach(k=>{
+    const b=DATA.byWeek[k];
+    Object.keys(b.lifts).forEach(d=>{ if(b.days[d]>0) doubles++; });
+  });
   $("#t-bankedsub").textContent="since 24 Aug";
   $("#t-totals").innerHTML=[
     {v:hoursAll.toFixed(1)+"h",k:"⏱ time on feet"},
     {v:Math.round(kmAll)+"km",k:"total run"},
     {v:longest?longest.toFixed(0)+"km":"—",k:"🏔️ longest"},
-    {v:Math.round(bankedVert)+"m",k:"⛰️ climbed"}
+    {v:Math.round(bankedVert)+"m",k:"⛰️ climbed"},
+    {v:doubles,k:"🏃🏋️ double days"}
   ].map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
 
   // ---- easy-run heart rate check ----
@@ -1163,12 +1239,18 @@ function weekReport(){
   L.push(meta.name+", "+fmtDate(days[0].d)+" to "+fmtDate(days[6].d));
   L.push("Week: "+act.km.toFixed(1)+"km run of "+weekPlanKm(w)+"km planned, "+Math.round(act.vert)+"m vert.");
   L.push("");
+  let dbl=0;
   days.forEach(p=>{
-    const done=act.days[p.d]||0, lift=act.lifts[p.d]?" + lift":"";
+    const done=act.days[p.d]||0, gym=!!act.lifts[p.d];
+    if(done>0&&gym) dbl++;
+    const actual = done>0
+      ? done.toFixed(1)+"km"+(gym?" + gym (DOUBLE DAY)":"")
+      : (gym?"gym only":"nothing logged");
     L.push(fmtDay(p.d)+" "+fmtDate(p.d)+": planned "+(p.km?p.km+"km":"rest")+(p.lift?" + "+p.lift:"")
-      +" | actual "+(done?done.toFixed(1)+"km":(act.lifts[p.d]?"lift only":"nothing logged"))+lift);
+      +" | actual "+actual);
     if(NOTES[p.d]) L.push("   note: "+NOTES[p.d]);
   });
+  if(dbl) L.push("Double days this week: "+dbl);
   const secs=DATA.runs.reduce((a,b)=>a+b.secs,0), km=DATA.runs.reduce((a,b)=>a+b.km,0);
   const vert=DATA.runs.reduce((a,b)=>a+b.vert,0);
   const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
@@ -1181,6 +1263,8 @@ function weekReport(){
     other.forEach(d=>L.push("  "+fmtDate(d)+": "+NOTES[d]));
   }
   L.push(""); L.push("Read this against my Strava and tell me what to change.");
+  L.push(""); L.push("Sync block, leave this in:");
+  L.push(syncBlock());
   return L.join("\n");
 }
 function copyWeek(){
@@ -1271,6 +1355,25 @@ function selectTab(i){
 })();
 
 $("#t-copy").addEventListener("click",copyWeek);
+$("#t-paste").addEventListener("click",()=>{
+  const w=$("#t-pastewrap");
+  w.hidden=!w.hidden;
+  if(!w.hidden) $("#t-pastebox").focus();
+});
+$("#t-pastecancel").addEventListener("click",()=>{
+  $("#t-pastewrap").hidden=true; $("#t-pastebox").value=""; $("#t-applied").textContent="";
+});
+$("#t-apply").addEventListener("click",()=>{
+  const raw=$("#t-pastebox").value.trim(), out=$("#t-applied");
+  if(!raw){ out.textContent="Paste something first."; return; }
+  const obj=parseSync(raw);
+  if(!obj){ out.textContent="No sync block found in that. Copy the whole message including the ``` block."; return; }
+  const changed=applySync(obj);
+  renderAll(); renderTrip(); renderRace();
+  $("#t-pastebox").value="";
+  out.textContent=changed.length?("Updated: "+changed.join(", ")+"."):"Nothing new in that block.";
+  setTimeout(()=>{ $("#t-pastewrap").hidden=true; out.textContent=""; },4000);
+});
 
 renderAll(); renderTrip(); renderRace();
 if(window.claude&&typeof window.claude.use==="function"){ setStatus("Reading Strava…"); initConnector(); }
