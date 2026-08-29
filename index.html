@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0c1214" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Taupo 100K">
-<meta name="description" content="Taupo Ultramarathon 100km training plan, travel block and race-day pacing.">
+<meta name="description" content="Taupo Ultramarathon 100km training plan, fuelling, travel block and race-day pacing.">
 <title>Waihaha to Whakaipo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -271,8 +271,9 @@
       </div>
     </div>
     <nav class="tabs" role="tablist">
-      <button role="tab" id="tab-today" aria-selected="true" aria-controls="v-today">Today</button>
+      <button role="tab" id="tab-today" aria-selected="true" aria-controls="v-today">This week</button>
       <button role="tab" id="tab-block" aria-selected="false" aria-controls="v-block">The block</button>
+      <button role="tab" id="tab-fuel" aria-selected="false" aria-controls="v-fuel">Fuel &amp; body</button>
       <button role="tab" id="tab-trip" aria-selected="false" aria-controls="v-trip">The trip</button>
       <button role="tab" id="tab-race" aria-selected="false" aria-controls="v-race">Race day</button>
     </nav>
@@ -411,6 +412,57 @@
         <p class="note"><b>The bank is not empty.</b> On 1 August you ran 22km with 503m of climbing on the Friday night and a 42km marathon in 3:53 the next morning, even splits, closing the last kilometre at 5:17. That back-to-back is already in your legs and it's a better 100k signal than the marathon time on its own.</p>
         <p class="note warn"><b>What the disruption costs you is time, not the finish.</b> The cutoff is midnight, 18 and a half hours. Off this block I'd put you at 14 to 16 hours with sensible pacing. Chasing 13 from here is how you blow up at 60km.</p>
         <p class="note crit"><b>The biggest risk is not fitness.</b> It's arriving home on 16 September sick or injured. Sixty hours in aircraft cabins, four days presenting at an expo, dinners most nights. Look after yourself over there and the last month takes care of itself.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FUEL & BODY ============ -->
+  <section class="view" id="v-fuel" role="tabpanel" aria-labelledby="tab-fuel" hidden>
+    <div class="hero">
+      <div class="hero-top">
+        <div class="eyebrow" id="fu-date">—</div>
+        <span class="pill acc" id="fu-daytype">—</span>
+      </div>
+      <div class="hero-body">
+        <h1 class="sess-title" id="fu-kcal">—</h1>
+        <p class="sess-sub" id="fu-because"></p>
+        <div class="metrics" id="fu-macros"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>How to spread it today</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px" id="fu-timing"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Fuelling on the run</h2><span class="xs muted mono" id="fu-dur"></span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px" id="fu-during"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Every day type</h2></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <div class="tblbox"><table id="fu-table">
+          <thead><tr><th>Day</th><th>Calories</th><th>Carbs</th><th>Protein</th><th>Fat</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="note" id="fu-racenote" style="font-size:13px"></p>
+        <p class="xs muted" style="margin:0">Built from your measured basal rate of 1,867 kcal and your own burn of 80 kcal per kilometre, taken from the marathon and confirmed by the 29 August 14km. Not a textbook estimate.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Body composition</h2><span class="xs muted mono">InBody, 27 Aug 2026</span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:14px">
+        <div class="metrics" id="fu-body"></div>
+        <div class="tblbox"><table style="min-width:440px">
+          <thead><tr><th>Marker</th><th>You</th><th>Read</th></tr></thead>
+          <tbody id="fu-inbody"></tbody>
+        </table></div>
+        <p class="note"><b>Your legs are the asset.</b> 20.3kg of lean mass across them and only 1.3% difference side to side. Strong symmetrical legs resist the eccentric quad damage that ends 100k races on the descents. That is why the lifting stays in the plan.</p>
+        <p class="note warn"><b>Do not diet before this race.</b> 86kg is heavier than ideal for 100km with 1,853m of climbing, and three or four kilos lighter might be worth half an hour. It is not worth chasing seven weeks out with travel ahead and illness behind. Eating in a deficit suppresses recovery and immunity, the exact two things that already cost you a fortnight. Weight is a project for after October.</p>
+        <p class="note crit"><b>Rescan around 29 or 30 September</b>, just after the peak weekend. If your ECW ratio has drifted from 0.371 toward 0.380 or above, that is an objective signal to back off in the taper rather than push.</p>
       </div>
     </div>
   </section>
@@ -708,7 +760,66 @@ let NOTES=lsGet("td_notes",{})||{};
 let TICKS=lsGet("td_ticks",{})||{};
 let PATCH=lsGet("td_patch",{})||{};
 let PATCH_STAMP=lsGet("td_patch_stamp",null);
-let openNote=null;
+let openNote=null, openFuel=null;
+
+/* ---- fuelling model ----
+   Measured, not estimated: BMR 1,867 from the 27 Aug InBody, x1.35 for work
+   and life, plus 80 kcal per kilometre taken from his own marathon (3,430
+   kcal / 42.3km) and confirmed by the 29 Aug 14km (1,135 kcal / 14.1km). */
+const BODY={kg:86.0, bmr:1867, kcalPerKm:80, base:2520};
+function fuelFor(km,isRace){
+  /* Race day is the one case where what you burn and what you can eat are
+     different problems. You cannot consume 10,000 calories on the move, so
+     these are the numbers you can actually get in, and the deficit is the plan. */
+  if(isRace){
+    const hours=14.5, during=Math.round(85*hours), carbs=during+150;
+    return {kcal:carbs*4+175*4+60*9, carbs, protein:175, fat:60, gkg:"on the move",
+            label:"Race", burn:Math.round(BODY.base+km*BODY.kcalPerKm), during};
+  }
+  const kcal=BODY.base+km*BODY.kcalPerKm;
+  let gkg,label;
+  if(km===0){ gkg=4;        label="Rest"; }
+  else if(km<=8){ gkg=5.5;  label="Easy"; }
+  else if(km<=14){ gkg=6.5; label="Moderate"; }
+  else if(km<=24){ gkg=8;   label="Long"; }
+  else if(km<=34){ gkg=9;   label="Big"; }
+  else{ gkg=10;             label="Peak"; }
+  const carbs=Math.round(BODY.kg*gkg);
+  const protein=(gkg>=8)?175:165;
+  const fat=Math.max(45,Math.round((kcal-carbs*4-protein*4)/9));
+  return {kcal:Math.round(kcal),carbs,protein,fat,gkg,label};
+}
+/* during-run fuelling, driven by how long you'll be out there */
+function duringFor(km,isRace){
+  const mins=isRace?870:Math.round(km*6.5);
+  if(km===0) return {mins:0,rows:[]};
+  if(mins<75) return {mins,rows:[["Carbs","none needed"],["Fluid","water if it's warm"]]};
+  if(mins<100) return {mins,rows:[["Carbs","30-60g total, one gel or a banana"],["Fluid","400-500ml"],["Sodium","optional"]]};
+  if(mins<180) return {mins,rows:[["Carbs","60-75g per hour, starting at 30 minutes"],["Fluid","500-600ml per hour"],["Sodium","300-500mg per hour"]]};
+  return {mins,rows:[["Carbs","80-90g per hour, starting at 30 minutes"],["Fluid","500-700ml per hour"],["Sodium","400-800mg per hour"],["Practise","exactly what you'll race with, nothing new"]]};
+}
+function timingFor(km,isRace){
+  if(km===0) return [
+    ["All day","Protein at every meal, 40g x 4. Carbs lower today, fat fills the gap."],
+    ["Evening","This is when the adaptation from yesterday actually happens. Eat properly and sleep."]];
+  if(km<=8) return [
+    ["Before","Fine fasted, or a banana if you'd rather."],
+    ["After, within 60min","30-40g protein and a proper meal."],
+    ["All day","40g protein, four times."]];
+  if(km<=14) return [
+    ["1-2h before","40-60g carbs. Oats, toast and honey, coffee."],
+    ["After, within 60min","80g carbs and 35g protein."],
+    ["All day","40g protein, four times. Carbs across every meal."]];
+  if(isRace) return [
+    ["3h before","100-150g of your tested breakfast. Sip electrolyte to the gun."],
+    ["During","80-90g carbs an hour from 30 minutes. Eat before you're hungry."],
+    ["After","Whatever you can face, then keep eating for two days."]];
+  return [
+    ["1-2h before","60-100g carbs. Practise the exact race-day breakfast."],
+    ["During","See the panel above. Train the gut, it adapts like the legs."],
+    ["Within 60min after","100g carbs and 35-40g protein. Skip this and you pay on Sunday."],
+    ["Rest of the day","Keep eating. A day this big is hard to cover in three meals."]];
+}
 
 /* The live plan is the base plan with any revisions Claude has sent applied
    on top, so a plan change travels as text and never needs a redeploy. */
@@ -766,14 +877,16 @@ function ingest(rows){
   for(const r of rows){
     const row=PLAN.find(p=>p.d===r.date);
     if(!row) continue;
-    if(!byWeek[row.w]) byWeek[row.w]={km:0,vert:0,days:{},lifts:{}};
+    if(!byWeek[row.w]) byWeek[row.w]={km:0,vert:0,days:{},lifts:{},detail:{}};
     if(r.isRun){
       byWeek[row.w].km+=r.km;
       byWeek[row.w].vert+=r.vert;
       byWeek[row.w].days[r.date]=(byWeek[row.w].days[r.date]||0)+r.km;
+      (byWeek[row.w].detail[r.date]=byWeek[row.w].detail[r.date]||[]).push(r);
       runs.push(r);
     } else if(r.isLift){
       byWeek[row.w].lifts[r.date]=true;
+      (byWeek[row.w].detail[r.date]=byWeek[row.w].detail[r.date]||[]).push(r);
     }
   }
   runs.sort((a,b)=>a.date<b.date?-1:1);
@@ -805,6 +918,10 @@ async function initConnector(){
           km:((a.summary&&a.summary.distance)||0)/1000,
           vert:(a.summary&&a.summary.elevation_gain)||0,
           secs:(a.summary&&a.summary.moving_time)||0,
+          kcal:(a.summary&&a.summary.total_calories)||0,
+          effort:(a.summary&&a.summary.relative_effort)||0,
+          cad:(a.summary&&a.summary.avg_cadence)||0,
+          name:a.name||"",
           hr:null,
           isRun:a.sport_type==="Run",
           isLift:GYM.indexOf(a.sport_type)>=0
@@ -922,7 +1039,12 @@ async function fetchStrava(){
       km:(a.distance||0)/1000,
       vert:a.total_elevation_gain||0,
       secs:a.moving_time||0,
+      kcal:a.calories||0,
+      effort:a.suffer_score||0,
+      cad:a.average_cadence?a.average_cadence*2:0,
+      name:a.name||"",
       hr:a.average_heartrate||null,
+      maxhr:a.max_heartrate||null,
       isRun:a.sport_type==="Run"||a.type==="Run",
       isLift:GYM.indexOf(a.sport_type)>=0||a.type==="WeightTraining"
     }));
@@ -938,6 +1060,65 @@ async function fetchStrava(){
     setStatus(e.message||"Could not reach Strava.", ' <button class="btn js-refresh" type="button">Retry</button>');
     renderAll();
   }finally{ syncing=false; }
+}
+
+/* ---- the expander under a day: what you did, then what to eat ---- */
+function fuelPanel(p){
+  const w=p.w, act=DATA.byWeek[w]||{detail:{}};
+  const done=(act.detail&&act.detail[p.d])||[];
+  const runs=done.filter(r=>r.isRun), gyms=done.filter(r=>r.isLift);
+  const f=fuelFor(p.km,!!p.race), dur=duringFor(p.km,!!p.race);
+  let h='<div class="notewrap" style="display:flex;flex-direction:column;gap:11px">';
+
+  if(runs.length){
+    const km=runs.reduce((a,b)=>a+b.km,0), secs=runs.reduce((a,b)=>a+b.secs,0);
+    const vert=runs.reduce((a,b)=>a+b.vert,0), kcal=runs.reduce((a,b)=>a+(b.kcal||Math.round(b.km*80)),0);
+    const hrs=runs.filter(r=>r.hr);
+    const hr=hrs.length?Math.round(hrs.reduce((a,b)=>a+b.hr,0)/hrs.length):null;
+    const cells=[
+      {v:km.toFixed(1)+"km",k:"distance"},
+      {v:hm(secs/60),k:"moving"},
+      {v:pace(secs/60,km),k:"pace /km"},
+      {v:Math.round(vert)+"m",k:"vert"},
+      {v:Math.round(kcal),k:"kcal burned"}
+    ];
+    if(hr) cells.push({v:hr,k:"avg hr"});
+    if(gyms.length) cells.push({v:"🏋️ "+gyms.length,k:"gym session"+(gyms.length>1?"s":"")});
+    h+='<div><div class="eyebrow" style="margin-bottom:6px">✅ What you actually did</div>'
+      +'<div class="metrics">'+cells.map(c=>'<div class="metric" style="min-width:74px;padding:7px 10px">'
+      +'<div class="v" style="font-size:16px">'+esc(c.v)+'</div><div class="k">'+esc(c.k)+'</div></div>').join("")+'</div>';
+    if(hr){
+      const ok=hr<=150, warn=hr>150&&hr<=156;
+      h+='<p class="note'+(ok?"":(warn?" warn":" crit"))+'" style="margin-top:9px;font-size:13px">'
+        +(ok?'Average '+hr+'bpm. Properly easy, right where it should be.'
+            :(warn?'Average '+hr+'bpm. Just over the line. Ease off a touch next time.'
+                  :'Average '+hr+'bpm. Too hard for an easy day. This is what spikes your training load off modest mileage.'))
+        +'</p>';
+    }
+    h+='</div>';
+  } else if(gyms.length){
+    h+='<div><div class="eyebrow" style="margin-bottom:6px">✅ What you actually did</div>'
+      +'<div class="metrics"><div class="metric"><div class="v">🏋️ '+gyms.length+'</div><div class="k">gym session'+(gyms.length>1?"s":"")+'</div></div>'
+      +'<div class="metric"><div class="v">'+hm(gyms.reduce((a,b)=>a+b.secs,0)/60)+'</div><div class="k">duration</div></div></div></div>';
+  }
+
+  h+='<div><div class="eyebrow" style="margin-bottom:6px">🍽️ Eat today · '+f.label+' day</div>'
+    +'<div class="metrics">'
+    +'<div class="metric" style="min-width:74px;padding:7px 10px"><div class="v" style="font-size:16px">'+f.kcal.toLocaleString()+'</div><div class="k">kcal</div></div>'
+    +'<div class="metric" style="min-width:74px;padding:7px 10px"><div class="v" style="font-size:16px">'+f.carbs+'g</div><div class="k">carbs</div></div>'
+    +'<div class="metric" style="min-width:74px;padding:7px 10px"><div class="v" style="font-size:16px">'+f.protein+'g</div><div class="k">protein</div></div>'
+    +'<div class="metric" style="min-width:74px;padding:7px 10px"><div class="v" style="font-size:16px">'+f.fat+'g</div><div class="k">fat</div></div>'
+    +'</div></div>';
+
+  if(dur.rows.length&&p.km>0){
+    h+='<div><div class="eyebrow" style="margin-bottom:5px">On the run · about '+hm(dur.mins)+'</div>'
+      +'<div class="small" style="color:var(--ink-2);line-height:1.6">'
+      +dur.rows.map(r=>'<b>'+esc(r[0])+':</b> '+esc(r[1])).join('<br>')+'</div></div>';
+  }
+  h+='<div><div class="eyebrow" style="margin-bottom:5px">Timing</div>'
+    +'<div class="small" style="color:var(--ink-2);line-height:1.6">'
+    +timingFor(p.km,!!p.race).map(r=>'<b>'+esc(r[0])+':</b> '+esc(r[1])).join('<br>')+'</div></div>';
+  return h+'</div>';
 }
 
 /* ===================== RENDER ===================== */
@@ -956,7 +1137,7 @@ function renderToday(){
   $("#t-title").textContent=row.t;
   $("#t-sub").textContent=row.note||(row.km>0?"Easy aerobic running. Nothing clever.":"Recovery is part of the plan, not a gap in it.");
 
-  const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{}};
+  const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{},detail:{}};
   const done=act.days[today]||0;
   const mets=[];
   if(row.km>0) mets.push({v:row.km+(row.race?"":"km"),k:row.race?"kilometres":"planned"});
@@ -992,9 +1173,13 @@ function renderToday(){
       +'<div class="dnote"><span class="stype">'+esc(tags[0])+'</span>'
       +(tags.length>1?' · '+esc(tags.slice(1).join(" · ")):'')+'</div></div>'
       +'<div class="dright">'+right
+      +'<div style="display:flex;gap:2px">'
+      +'<button class="notebtn" type="button" data-fuel="'+p.d+'" '
+      +'aria-label="Fuelling for '+fmtDate(p.d)+'" aria-expanded="'+(openFuel===p.d)+'">🍽️</button>'
       +'<button class="notebtn'+(note?' has':'')+'" type="button" data-note="'+p.d+'" '
       +'aria-label="'+(note?'Edit note':'Add note')+' for '+fmtDate(p.d)+'" aria-expanded="'+open+'">'
-      +(note?'📝':'✏️')+'</button></div>'
+      +(note?'📝':'✏️')+'</button></div></div>'
+      +(openFuel===p.d?fuelPanel(p):'')
       +(open
         ?'<div class="notewrap"><textarea data-noteinput="'+p.d+'" placeholder="How did it go? Sleep, niggles, how the legs felt.">'+esc(note)+'</textarea></div>'
         :(note?'<div class="noteshow">'+esc(note)+'</div>':''))
@@ -1004,6 +1189,9 @@ function renderToday(){
   $$("#t-week [data-note]").forEach(b=>b.addEventListener("click",()=>{
     openNote=(openNote===b.dataset.note)?null:b.dataset.note; renderToday();
     const ta=$("#t-week [data-noteinput]"); if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}
+  }));
+  $$("#t-week [data-fuel]").forEach(b=>b.addEventListener("click",()=>{
+    openFuel=(openFuel===b.dataset.fuel)?null:b.dataset.fuel; renderToday();
   }));
   const ta=$("#t-week [data-noteinput]");
   if(ta) ta.addEventListener("input",()=>{
@@ -1117,7 +1305,7 @@ function renderBlock(){
   $("#b-weeks").innerHTML=WEEK_META.map(meta=>{
     const w=meta.w, days=weekDays(w);
     const planKm=weekPlanKm(w), planVert=weekPlanVert(w);
-    const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{}};
+    const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{},detail:{}};
     const longRow=days.find(p=>p.long)||days.find(p=>p.race);
     const future=days[0].d>today;
     const pct=planKm?Math.min(112,(act.km/planKm)*100):0;
@@ -1209,6 +1397,71 @@ function drawVolPlot(){
   svg.innerHTML=s;
 }
 
+const INBODY=[
+  ["Weight","86.0kg","Heavier than ideal for 100km. Hold it, don't cut it."],
+  ["Body fat","16.7kg, 19.4%","Healthy range. Not a race-week project."],
+  ["Skeletal muscle","39.7kg","Strong. SMI 9.1, well clear of any concern."],
+  ["Leg lean mass","20.3kg","R 10.20 / L 10.07. Only 1.3% apart, essentially balanced."],
+  ["Basal rate","1,867 kcal","Drives every number on this page."],
+  ["ECW ratio","0.371","Normal. Rises with fatigue, so this is the one to re-test."],
+  ["Phase angle","6.6°","Healthy cell membranes. No damage left from the August illness."],
+  ["Visceral fat","75.3cm², level 7","Under the threshold. Fine."],
+  ["InBody score","86","Good."]
+];
+
+function renderFuel(){
+  const today=todayISO();
+  let row=PLAN.find(p=>p.d===today)||PLAN[PLAN.length-1];
+  const f=fuelFor(row.km,!!row.race), dur=duringFor(row.km,!!row.race);
+
+  $("#fu-date").textContent=fmtLong(row.d)+" · "+row.t;
+  $("#fu-daytype").innerHTML='<span class="dot"></span>'+f.label+" day";
+  $("#fu-kcal").textContent=f.kcal.toLocaleString()+" kcal";
+  $("#fu-because").textContent=row.race
+    ? "You'll burn around "+f.burn.toLocaleString()+" and can eat about "+f.kcal.toLocaleString()
+      +". The gap is the race. Eat from kilometre one."
+    : row.km>0
+    ? "2,520 to keep you alive and working, plus "+Math.round(row.km*BODY.kcalPerKm).toLocaleString()
+      +" for "+row.km+"km of running. Eat it, don't admire it."
+    : "No running today, so this is your baseline. Protein stays high, carbs come down, fat fills the gap.";
+  $("#fu-macros").innerHTML=[
+    {v:f.carbs+"g",k:"carbs · "+f.gkg+" g/kg"},
+    {v:f.protein+"g",k:"protein"},
+    {v:f.fat+"g",k:"fat"},
+    {v:Math.round(f.carbs/4)+"g",k:"carbs per meal"}
+  ].map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
+
+  $("#fu-timing").innerHTML=timingFor(row.km,!!row.race)
+    .map(r=>'<p class="note"><b>'+esc(r[0])+'.</b> '+esc(r[1])+'</p>').join("");
+
+  $("#fu-dur").textContent=row.km>0?("about "+hm(dur.mins)+" out there"):"";
+  $("#fu-during").innerHTML=row.km===0
+    ? '<p class="note">Nothing to fuel today. Rest days are when the work lands.</p>'
+    : dur.rows.map(r=>'<p class="note"><b>'+esc(r[0])+'.</b> '+esc(r[1])+'</p>').join("");
+
+  const types=[
+    {n:"Rest",km:0},{n:"Easy 8km",km:8},{n:"Steady 12km",km:12},{n:"Long 22km",km:22},
+    {n:"Long 30km",km:30},{n:"Peak 38km",km:38},{n:"Race, 100km",km:100,race:true}
+  ];
+  $("#fu-table tbody").innerHTML=types.map(t=>{
+    const x=fuelFor(t.km,!!t.race);
+    return '<tr'+(t.km===row.km?' class="dropbag"':'')+(t.race?' class="finish"':'')+'>'
+      +'<td>'+esc(t.n)+(t.race?' <span class="pill race">eaten</span>':'')+'</td>'
+      +'<td>'+x.kcal.toLocaleString()+'</td><td>'+x.carbs+'g</td><td>'+x.protein+'g</td><td>'+x.fat+'g</td></tr>';
+  }).join("");
+  const rf=fuelFor(100,true);
+  $("#fu-racenote").innerHTML='On race day you will burn about <b>'+rf.burn.toLocaleString()
+    +' kcal</b> and be able to eat roughly <b>'+rf.kcal.toLocaleString()
+    +'</b>. That deficit is normal and unavoidable, which is exactly why the carb load on the Wednesday to Friday matters and why you eat from kilometre one rather than when you feel like it.';
+
+  $("#fu-body").innerHTML=[
+    {v:"86.0kg",k:"weight"},{v:"19.4%",k:"body fat"},
+    {v:"69.3kg",k:"lean mass"},{v:"1,867",k:"basal kcal"},{v:"20.3kg",k:"🦵 leg lean"}
+  ].map(m=>'<div class="metric"><div class="v">'+esc(m.v)+'</div><div class="k">'+esc(m.k)+'</div></div>').join("");
+  $("#fu-inbody").innerHTML=INBODY.map(r=>
+    '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td style="text-align:left;white-space:normal;font-family:\'IBM Plex Sans\',sans-serif;color:var(--ink-2)">'+esc(r[2])+'</td></tr>').join("");
+}
+
 function renderTrip(){
   const today=todayISO();
   $("#trip-days").innerHTML=PLAN.filter(p=>p.trip).map(p=>{
@@ -1253,7 +1506,7 @@ function wireChecks(){
 /* ---- export the week as text to paste into Claude ---- */
 function weekReport(){
   const today=todayISO(), w=weekOf(today), meta=WEEK_META[w], days=weekDays(w);
-  const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{}};
+  const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{},detail:{}};
   const L=[];
   L.push("Taupō 100k training update, "+fmtLong(today));
   L.push(meta.name+", "+fmtDate(days[0].d)+" to "+fmtDate(days[6].d));
@@ -1343,9 +1596,9 @@ function renderCountdown(){
   else if(d===0){$("#cd-n").textContent="0";$("#cd-u").innerHTML="today<br>go well"}
   else{$("#cd-n").textContent=Math.abs(d);$("#cd-u").innerHTML="days<br>since Whakaipo"}
 }
-function renderAll(){renderCountdown();renderToday();renderBlock()}
+function renderAll(){renderCountdown();renderToday();renderBlock();renderFuel()}
 
-const TABS=[["tab-today","v-today"],["tab-block","v-block"],["tab-trip","v-trip"],["tab-race","v-race"]];
+const TABS=[["tab-today","v-today"],["tab-block","v-block"],["tab-fuel","v-fuel"],["tab-trip","v-trip"],["tab-race","v-race"]];
 let tabIdx=0;
 function selectTab(i){
   tabIdx=Math.max(0,Math.min(TABS.length-1,i));
