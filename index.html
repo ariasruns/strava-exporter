@@ -251,7 +251,8 @@
 
 <div id="auth"><div class="authcard">
   <h2>Connect Strava</h2>
-  <p class="small muted" style="margin:0">Client ID 211921. Paste your client secret from strava.com/settings/api. It stays in this browser and never leaves it.</p>
+  <p class="small muted" style="margin:0">From strava.com/settings/api. Both stay in this browser and never leave it. Running someone else's copy of this app? Make your own Strava API application, set its callback domain to <b>ariasruns.github.io</b>, and put your own two values in here.</p>
+  <input type="text" id="clientid" placeholder="Client ID" autocomplete="off" inputmode="numeric">
   <input type="password" id="secret" placeholder="Client secret" autocomplete="off">
   <div class="autherr" id="autherr"></div>
   <button class="btn primary" id="authgo">Connect to Strava</button>
@@ -347,7 +348,7 @@
     </div>
 
     <div class="card">
-      <div class="card-h"><h2>Your numbers</h2><span class="xs muted mono">Garmin, Jun to Aug 2026</span></div>
+      <div class="card-h"><h2>Your numbers</h2><span class="xs muted mono">Arias, Garmin Jun-Aug 2026</span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:13px">
         <div class="tblbox">
           <table style="min-width:420px">
@@ -361,7 +362,7 @@
             </tbody>
           </table>
         </div>
-        <p class="note warn">These come from your own June to August data, not a textbook. When you got sick in August your resting rate hit 62 and your HRV fell to 20. That is what trouble looks like on you, so you now know exactly what to watch for in a Dubai hotel room.</p>
+        <p class="note warn">These are Arias's numbers, from his own June to August data rather than a textbook. If you are running a shared copy of this app, the training plan and every number on this card belong to him, and the Race day tab is the part that applies to everyone. When you got sick in August your resting rate hit 62 and your HRV fell to 20. That is what trouble looks like on you, so you now know exactly what to watch for in a Dubai hotel room.</p>
       </div>
     </div>
 
@@ -529,6 +530,9 @@
             <div class="metric"><div class="v mono">500-700</div><div class="k">ml fluid / hr</div></div>
           </div>
           <p class="note">Eat before you're hungry, drink before you're thirsty. The first 30km is where you bank the fuel that carries you through 70 to 90, and it's exactly the stretch where everyone forgets because they feel fine.</p>
+          <p class="note"><b>Your mix.</b> Drink mix in both flasks, refilled at all ten aid stations, is the backbone and carries roughly 40g an hour on its own. A gel every 45 to 60 minutes adds about 25g. Loaded pouches from 50km fill the rest and stop you gagging on sweet gels at 70km.</p>
+          <p class="note warn"><b>Pouches cannot be the base, and here is why.</b> A pouch with maple syrup stirred in is around 35g of carbs. At 85g an hour for fifteen hours you need roughly 1,275g total, which is 36 pouches and about five kilos. They go in the 50km and 76km drop bags as the back-half palate saver, not in your vest from the start.</p>
+          <p class="note"><b>The maple syrup is a good instinct.</b> It is close to pure sucrose, which is glucose and fructose together, and that is exactly what lets you absorb more than 60g an hour. Pair each pouch with something glucose-heavy, a gel or the aid-station cola, and check the fibre on whatever pouch you buy. Fibre late in a hundred is a bad idea.</p>
           <p class="note">On course: lollies, gingernuts, chips, pretzels, peanut butter and vegemite sandwiches, fruit, water, electrolyte and cola. The last two stations drop the sandwiches and oranges, so top up properly at 76km.</p>
           <p class="note warn">Nothing new on race day. Every gel, chew and drink gets tested on the 26 September rehearsal first.</p>
         </div>
@@ -557,6 +561,7 @@
       <div class="card-h"><h2>How to run it</h2></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
         <p class="note">Walk every climb from kilometre one. Not from kilometre 40 when your legs make the decision for you. Power-hike hard, run the flats and the runnable descents, and you'll pass people all afternoon.</p>
+        <p class="note"><b>No poles, so hands on knees.</b> Push down through your thigh with each step on anything steep. It takes real load off the legs and it is the technique that replaces poles. Practise it at Papamoa until it is automatic, because 1,853m of climbing is a long way to work it out on the day.</p>
         <p class="note">The first 30km should feel embarrassingly slow. Around 7:15/km on the runnable ground, heart rate down in the 130s and 140s. If it feels good at 20km, that's the plan working, and it's still not permission to push.</p>
         <p class="note">80% of this course is single trail with 1,853m of climbing. Your head needs to expect the ground to be slow, so don't panic when an early split looks soft.</p>
         <p class="note">Kinloch at 76km is where the race actually starts. Sit down, eat properly, sort your feet, pick up the second light, leave inside ten minutes. Everything after that is 24km of stubbornness.</p>
@@ -607,11 +612,11 @@ const PLAN_BASE=[
 {w:3,d:"2026-09-20",t:"Easy 10km",km:10,vert:0,b2b:true,note:"Back-to-back. Reminding the legs what tired feels like."},
 
 {w:4,d:"2026-09-21",t:"Easy 8km",km:8,vert:0,lift:"Push"},
-{w:4,d:"2026-09-22",t:"Hills 8km",km:8,vert:350,note:"Steepest ground you have. Power-hike two of the reps instead of running them, because that's what you'll do on the day."},
+{w:4,d:"2026-09-22",t:"Hills 8km",km:8,vert:350,loc:"Papamoa Hills",note:"Papamoa summit laps. The trig is 224m, so roughly 200m of climbing a lap, and two laps gets you 400m. Power-hike at least one of them hands-on-knees, because that is race technique. Power-hike two of the reps instead of running them, because that's what you'll do on the day."},
 {w:4,d:"2026-09-23",t:"Legs day",km:0,vert:0,lift:"Legs",note:"Last heavy leg session of the block. Nothing heavy after today."},
 {w:4,d:"2026-09-24",t:"Steady 7km",km:7,vert:0,note:"Short on purpose. Saturday is the biggest day of the build."},
 {w:4,d:"2026-09-25",t:"Rest",km:0,vert:0,note:"Full rest. Pack the drop bags tonight as if tomorrow is race day, because tomorrow is the rehearsal."},
-{w:4,d:"2026-09-26",t:"Long 38km",km:38,vert:700,long:true,note:"Dress rehearsal and the peak of the block. Race breakfast three hours out, race kit, race shoes, headlamp for the first hour, 80g of carbs an hour. Everything you'll use on 17 October gets tested today."},
+{w:4,d:"2026-09-26",t:"Long 38km",km:38,vert:700,long:true,note:"Dress rehearsal and the peak of the block. Start in the dark from home for the headlamp hour, because the Papamoa gates only open at sunrise, then take the vert there. Carry your own water, the park has none. Race breakfast three hours out, race kit, race shoes, headlamp for the first hour, 80g of carbs an hour. Everything you'll use on 17 October gets tested today."},
 {w:4,d:"2026-09-27",t:"Easy 16km",km:16,vert:150,b2b:true,note:"54km across the weekend on wrecked legs. This is the session that gets you to Whakaipo Bay."},
 
 {w:5,d:"2026-09-28",t:"Rest",km:0,vert:0,note:"Nothing. Eat and sleep."},
@@ -659,9 +664,9 @@ const AID=[
 const TARGETS=[{min:810,label:"13:30"},{min:870,label:"14:30"},{min:930,label:"15:30"},{min:990,label:"16:30"}];
 
 const BAGS=[
-{km:29,at:"Hingarae Rd",items:"Fuel for the next 21km, spare socks, sunscreen, a bottle of your own drink mix. You'll be about four hours in and still feeling good, so grab and go."},
-{km:50,at:"Airstrip, halfway",items:"The big one. Fresh socks, blister kit, chafe cream, restock all fuel, caffeine from here on, a cap or a warm layer depending on the day. Sit down for five minutes, not fifteen."},
-{km:76,at:"Kinloch Domain",items:"Second headlamp and spare batteries, warm layer for the dark, real food you actually want to eat, painkillers if you take them, final fuel for 24km. Feet sorted properly here or not at all."}];
+{km:29,at:"Hingarae Rd",items:"Grab and go, you'll be four hours in and feeling good. Two gels, a drink-mix refill, spare socks, sunscreen. No pouches yet, you won't want them and they weigh too much to carry early."},
+{km:50,at:"Airstrip, halfway",items:"The big one and where the pouches start. Three loaded pouches, four gels, drink mix, fresh socks, blister kit, chafe cream, caffeine from here on, a cap or warm layer. Sit for five minutes, not fifteen."},
+{km:76,at:"Kinloch Domain",items:"Second headlamp and spare batteries, warm layer, three more loaded pouches, three gels, painkillers if you take them. This is where real food beats sweet gels, so lead with the pouches. Feet sorted properly here or not at all."}];
 
 const KIT=[
 "Headlamp, charged. Mandatory at the start, and it's dark until about 6:30am.",
@@ -945,7 +950,8 @@ async function initConnector(){
 }
 
 /* --- source B: standalone Strava OAuth --- */
-const CLIENT_ID="211921", REDIRECT_URI="https://ariasruns.github.io/strava-exporter/";
+const DEFAULT_CLIENT_ID="211921", REDIRECT_URI="https://ariasruns.github.io/strava-exporter/";
+let CLIENT_ID=lsGet("td_clientid",DEFAULT_CLIENT_ID)||DEFAULT_CLIENT_ID;
 const S={secret:"",accessToken:null,refreshToken:null,expiresAt:null};
 
 function showAuth(on){ $("#auth").classList.toggle("on",!!on); }
@@ -957,9 +963,12 @@ function initOAuth(){
   const cached=lsGet("td_rows",null);
   if(cached&&cached.length){ ingest(cached); renderAll(); }
 
+  $("#clientid").value=CLIENT_ID;
   $("#authgo").addEventListener("click",()=>{
-    const s=$("#secret").value.trim();
+    const s=$("#secret").value.trim(), cid=$("#clientid").value.trim();
+    if(!cid){ $("#autherr").textContent="Enter your Strava client ID."; return; }
     if(!s){ $("#autherr").textContent="Paste your client secret first."; return; }
+    CLIENT_ID=cid; lsSet("td_clientid",cid);
     localStorage.setItem("td_secret",s);
     location.href="https://www.strava.com/oauth/authorize?client_id="+CLIENT_ID
       +"&redirect_uri="+encodeURIComponent(REDIRECT_URI)
