@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- Waihaha to Whakaipo · Taupo 100k app · BUILD 3 · 2026-08-30 -->
+<!-- Upload this file to ariasruns.github.io/strava-exporter as index.html -->
+<!-- Footer of the running app must read: Waihaha to Whakaipo · 2026-08-30 · build 3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -585,6 +588,8 @@
   </p>
 </div>
 
+<div style="text-align:center;padding:18px 12px 26px;font-size:11px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace" id="app-build"></div>
+
 <script>
 /* ===================== PLAN ===================== */
 const RACE_DATE="2026-10-17", RACE_START_MIN=330;
@@ -865,7 +870,7 @@ function applyPatch(){
 applyPatch();
 
 const SYNC_TAG="TAUPO-SYNC";
-const BUILD="2026-08-30 · build 2";
+const BUILD="2026-08-30 · build 3";
 
 /* His real Garmin zones. Max 188, LTHR 172. Zone 4 starts at 150, which is
    the number that matters: anything at 150+ is not an easy run. */
@@ -1821,13 +1826,16 @@ $("#t-apply").addEventListener("click",()=>{
   setTimeout(()=>{ $("#t-pastewrap").hidden=true; out.textContent=""; },4000);
 });
 
-$("#app-build").textContent="Waihaha to Whakaipo · "+BUILD;
-renderAll(); renderTrip(); renderRace();
+(function(){ var b=$("#app-build"); if(b) b.textContent="Waihaha to Whakaipo · "+BUILD; })();
+try{ renderAll(); renderTrip(); renderRace(); }
+catch(e){
+  if(typeof console!=="undefined") console.error("td render failed:",e);
+  var w=$("#app-build");
+  if(w) w.textContent="Waihaha to Whakaipo · "+BUILD+" · render error, see console";
+}
 if(window.claude&&typeof window.claude.use==="function"){ setStatus("Reading Strava…"); initConnector(); }
 else { initOAuth(); }
 </script>
-
-<div style="text-align:center;padding:18px 12px 26px;font-size:11px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace" id="app-build"></div>
 
 </body>
 </html>
