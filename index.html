@@ -766,6 +766,25 @@ let TICKS=lsGet("td_ticks",{})||{};
 let PATCH=lsGet("td_patch",{})||{};
 let PATCH_STAMP=lsGet("td_patch_stamp",null);
 let openNote=null, openFuel=null;
+let NOTES_UNSAFE=false;
+
+/* Notes were silently lost when a localStorage write failed, and an open
+   textarea was never committed before the week was copied. Both fixed here. */
+function saveNotes(){
+  lsSet("td_notes",NOTES);
+  var back=lsGet("td_notes",null);
+  var ok=back&&JSON.stringify(back)===JSON.stringify(NOTES);
+  NOTES_UNSAFE=!ok;
+  if(!ok&&typeof console!=="undefined") console.warn("td: notes did not persist to localStorage");
+  return !!ok;
+}
+function flushOpenNote(){
+  var ta=$("#t-week [data-noteinput]");
+  if(!ta) return;
+  var d=ta.dataset.noteinput, v=ta.value.trim();
+  if(v) NOTES[d]=v; else delete NOTES[d];
+  saveNotes();
+}
 
 /* ---- fuelling model ----
    Measured, not estimated: BMR 1,867 from the 27 Aug InBody, x1.35 for work
@@ -837,7 +856,7 @@ applyPatch();
 const SYNC_TAG="TAUPO-SYNC";
 function syncBlock(){
   return "```"+SYNC_TAG+"\n"+JSON.stringify({
-    v:1, stamp:new Date().toISOString().slice(0,10),
+    v:1, stamp:todayISO(),
     notes:NOTES, ticks:TICKS, patch:PATCH
   })+"\n```";
 }
@@ -1091,17 +1110,38 @@ function fuelPanel(p){
       {v:Math.round(vert)+"m",k:"vert"},
       {v:Math.round(kcal),k:"kcal burned"}
     ];
-    if(hr) cells.push({v:hr,k:"avg hr"});
+    if(hr) cells.push({v:hr,k:runs.length>1?"avg hr, all":"avg hr"});
     if(gyms.length) cells.push({v:"🏋️ "+gyms.length,k:"gym session"+(gyms.length>1?"s":"")});
-    h+='<div><div class="eyebrow" style="margin-bottom:6px">✅ What you actually did</div>'
+    h+='<div><div class="eyebrow" style="margin-bottom:6px">✅ What you actually did'
+      +(runs.length>1?' · '+runs.length+' separate runs':'')+'</div>'
       +'<div class="metrics">'+cells.map(c=>'<div class="metric" style="min-width:74px;padding:7px 10px">'
       +'<div class="v" style="font-size:16px">'+esc(c.v)+'</div><div class="k">'+esc(c.k)+'</div></div>').join("")+'</div>';
+    /* two runs in a day stay two runs */
+    if(runs.length>1){
+      h+='<div style="margin-top:9px;display:flex;flex-direction:column;gap:5px">'
+        +runs.map((r,i)=>{
+          const bits=[r.km.toFixed(1)+'km', hm(r.secs/60)];
+          if(r.km>0) bits.push(pace(r.secs/60,r.km)+'/km');
+          if(r.vert) bits.push(Math.round(r.vert)+'m');
+          if(r.hr) bits.push(Math.round(r.hr)+'bpm');
+          return '<div style="display:flex;gap:8px;align-items:baseline;padding:6px 9px;'
+            +'border:1px solid var(--line);border-radius:7px">'
+            +'<b style="font-size:12px;opacity:.6">'+(i+1)+'</b>'
+            +'<span style="flex:1;font-size:13px">'+esc(r.name||('Run '+(i+1)))+'</span>'
+            +'<span class="small" style="color:var(--ink-2);white-space:nowrap">'+esc(bits.join(' · '))+'</span>'
+            +'</div>';
+        }).join("")+'</div>';
+    }
     if(hr){
-      const ok=hr<=150, warn=hr>150&&hr<=156;
+      const peak=Math.max.apply(null,hrs.map(r=>Math.round(r.hr)));
+      const judge=runs.length>1?peak:hr;
+      const lead=runs.length>1?'Hardest run averaged '+judge+'bpm. ':'Average '+judge+'bpm. ';
+      const ok=judge<=150, warn=judge>150&&judge<=156;
       h+='<p class="note'+(ok?"":(warn?" warn":" crit"))+'" style="margin-top:9px;font-size:13px">'
-        +(ok?'Average '+hr+'bpm. Properly easy, right where it should be.'
-            :(warn?'Average '+hr+'bpm. Just over the line. Ease off a touch next time.'
-                  :'Average '+hr+'bpm. Too hard for an easy day. This is what spikes your training load off modest mileage.'))
+        +lead
+        +(ok?'Properly easy, right where it should be.'
+            :(warn?'Just over the line. Ease off a touch next time.'
+                  :'Too hard for an easy day. This is what spikes your training load off modest mileage.'))
         +'</p>';
     }
     h+='</div>';
@@ -1159,11 +1199,13 @@ function renderToday(){
   const days=weekDays(w);
   $("#t-week").innerHTML=days.map(p=>{
     const logged=act.days[p.d]||0, lifted=!!act.lifts[p.d], past=p.d<today;
+    const nRuns=((act.detail&&act.detail[p.d])||[]).filter(r=>r.isRun).length;
+    const multi=nRuns>1?'<span class="pill neut">'+nRuns+' runs</span>':'';
     const st=sType(p), meta=STYPE[st];
     let right;
     if(p.race) right='<span class="pill race">100km</span>';
-    else if(logged>0&&lifted) right='<span class="dkm">'+logged.toFixed(1)+'km</span><span class="pill dbl">🏃🏋️ double day</span>';
-    else if(logged>0) right='<span class="dkm">'+logged.toFixed(1)+'km</span><span class="pill good"><span class="dot"></span>done</span>';
+    else if(logged>0&&lifted) right='<span class="dkm">'+logged.toFixed(1)+'km</span>'+multi+'<span class="pill dbl">🏃🏋️ double day</span>';
+    else if(logged>0) right='<span class="dkm">'+logged.toFixed(1)+'km</span>'+multi+'<span class="pill good"><span class="dot"></span>done</span>';
     else if(lifted) right='<span class="pill good">🏋️ gym only</span>';
     else if(DATA.hasData&&past&&p.km>0) right='<span class="dkm muted">'+p.km+'km</span><span class="pill crit"><span class="dot"></span>missed</span>';
     else if(DATA.hasData&&past) right='<span class="pill neut">rest taken</span>';
@@ -1203,11 +1245,14 @@ function renderToday(){
     openFuel=(openFuel===b.dataset.fuel)?null:b.dataset.fuel; renderToday();
   }));
   const ta=$("#t-week [data-noteinput]");
-  if(ta) ta.addEventListener("input",()=>{
-    const d=ta.dataset.noteinput, v=ta.value.trim();
-    if(v) NOTES[d]=v; else delete NOTES[d];
-    lsSet("td_notes",NOTES);
-  });
+  if(ta){
+    const commit=()=>{
+      const d=ta.dataset.noteinput, v=ta.value.trim();
+      if(v) NOTES[d]=v; else delete NOTES[d];
+      saveNotes();
+    };
+    ["input","change","blur"].forEach(ev=>ta.addEventListener(ev,commit));
+  }
 
   const planKm=weekPlanKm(w);
   $("#t-weeknums").textContent=act.km.toFixed(0)+"km of "+planKm+"km";
@@ -1514,35 +1559,59 @@ function wireChecks(){
 
 /* ---- export the week as text to paste into Claude ---- */
 function weekReport(){
+  flushOpenNote();
   const today=todayISO(), w=weekOf(today), meta=WEEK_META[w], days=weekDays(w);
   const act=DATA.byWeek[w]||{km:0,vert:0,days:{},lifts:{},detail:{}};
   const L=[];
-  L.push("Taupō 100k training update, "+fmtLong(today));
+  L.push("Taupo 100k training update, "+fmtLong(today));
   L.push(meta.name+", "+fmtDate(days[0].d)+" to "+fmtDate(days[6].d));
-  L.push("Week: "+act.km.toFixed(1)+"km run of "+weekPlanKm(w)+"km planned, "+Math.round(act.vert)+"m vert.");
+  L.push("Week: "+act.km.toFixed(1)+"km run of "+weekPlanKm(w)+"km planned, "
+    +Math.round(act.vert)+"m vert of "+weekPlanVert(w)+"m planned.");
+  const syncedAt=DATA.lastAt||lastSync||0;
+  L.push("Data through "+(syncedAt
+    ? fmtLong(iso(new Date(syncedAt)))+" "+new Date(syncedAt).getHours()+":"+pad(new Date(syncedAt).getMinutes())
+    : "an unknown sync time")+".");
   L.push("");
-  let dbl=0;
+  let dbl=0, nRuns=0;
   days.forEach(p=>{
-    const done=act.days[p.d]||0, gym=!!act.lifts[p.d];
+    const all=(act.detail&&act.detail[p.d])||[];
+    const runs=all.filter(r=>r.isRun), gyms=all.filter(r=>r.isLift);
+    const done=act.days[p.d]||0, gym=gyms.length>0;
     if(done>0&&gym) dbl++;
-    const actual = done>0
-      ? done.toFixed(1)+"km"+(gym?" + gym (DOUBLE DAY)":"")
-      : (gym?"gym only":"nothing logged");
-    L.push(fmtDay(p.d)+" "+fmtDate(p.d)+": planned "+(p.km?p.km+"km":"rest")+(p.lift?" + "+p.lift:"")
-      +" | actual "+actual);
-    if(NOTES[p.d]) L.push("   note: "+NOTES[p.d]);
+    nRuns+=runs.length;
+    const planned="planned "+(p.km?p.km+"km":"rest")+(p.vert?" + "+p.vert+"m vert":"")+(p.lift?" + "+p.lift:"");
+    let actual;
+    if(!runs.length) actual = gym?"gym only":"nothing logged";
+    else if(runs.length===1) actual = done.toFixed(1)+"km"+(gym?" + gym":"");
+    else actual = runs.length+" separate runs, "+done.toFixed(1)+"km total"+(gym?" + gym":"");
+    L.push(fmtDay(p.d)+" "+fmtDate(p.d)+": "+planned+" | actual "+actual);
+    runs.forEach((r,i)=>{
+      const bits=[r.km.toFixed(1)+"km", hm(r.secs/60)];
+      if(r.km>0) bits.push(pace(r.secs/60,r.km)+"/km");
+      bits.push(Math.round(r.vert)+"m vert");
+      if(r.hr) bits.push(Math.round(r.hr)+"bpm avg");
+      if(r.maxhr) bits.push(Math.round(r.maxhr)+"bpm max");
+      if(r.effort) bits.push("effort "+Math.round(r.effort));
+      L.push("   run "+(i+1)+" of "+runs.length+", "+(r.name||"untitled")+": "+bits.join(", "));
+    });
+    gyms.forEach(g=>L.push("   gym: "+(g.name||"weights")+", "+hm(g.secs/60)));
+    if(NOTES[p.d]) L.push("   my note: "+NOTES[p.d]);
   });
-  if(dbl) L.push("Double days this week: "+dbl);
+  L.push("");
+  L.push("Runs logged this week: "+nRuns+(dbl?". Double days (run + gym): "+dbl:""));
   const secs=DATA.runs.reduce((a,b)=>a+b.secs,0), km=DATA.runs.reduce((a,b)=>a+b.km,0);
   const vert=DATA.runs.reduce((a,b)=>a+b.vert,0);
   const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
-  L.push("");
   L.push("Block to date: "+Math.round(km)+"km, "+(secs/3600).toFixed(1)+"h on feet, "
-    +Math.round(vert)+"m vert, longest "+longest.toFixed(0)+"km.");
+    +Math.round(vert)+"m vert, longest single run "+longest.toFixed(1)+"km.");
   const other=Object.keys(NOTES).filter(d=>!days.some(p=>p.d===d)).sort();
   if(other.length){
     L.push(""); L.push("Earlier notes:");
     other.forEach(d=>L.push("  "+fmtDate(d)+": "+NOTES[d]));
+  }
+  if(NOTES_UNSAFE){
+    L.push("");
+    L.push("WARNING: this phone would not save my notes to browser storage, so some may be missing.");
   }
   L.push(""); L.push("Read this against my Strava and tell me what to change.");
   L.push(""); L.push("Sync block, leave this in:");
