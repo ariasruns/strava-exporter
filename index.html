@@ -296,6 +296,16 @@
       </div>
     </div>
 
+    <div class="card" id="t-tomcard" hidden>
+      <div class="card-h"><h2>Tomorrow</h2><span class="pill acc" id="t-tomday">—</span></div>
+      <div class="card-b" id="t-tombody" style="display:flex;flex-direction:column;gap:9px"></div>
+    </div>
+
+    <div class="card" id="t-tripcard" hidden>
+      <div class="card-h"><h2>🌡️ Trip health rules</h2><span class="pill warn">while away</span></div>
+      <div class="card-b" id="t-tripbody" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
+
     <div class="card" id="t-nextcard" hidden>
       <div class="card-h"><h2>The session that matters</h2><span class="pill acc" id="t-nextcount">—</span></div>
       <div class="card-b" style="display:flex;flex-direction:column;gap:9px">
@@ -310,6 +320,7 @@
 
     <div class="card">
       <div class="card-h"><h2>This week</h2><div class="small mono muted" id="t-weeknums"></div></div>
+      <div id="t-zonescore"></div>
       <div class="weekstrip" id="t-week"></div>
       <div class="card-b" style="border-top:1px solid var(--line-soft);display:flex;flex-direction:column;gap:9px">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -854,6 +865,17 @@ function applyPatch(){
 applyPatch();
 
 const SYNC_TAG="TAUPO-SYNC";
+const BUILD="2026-08-30 · build 2";
+
+/* His real Garmin zones. Max 188, LTHR 172. Zone 4 starts at 150, which is
+   the number that matters: anything at 150+ is not an easy run. */
+const HRZ=[{n:1,f:94},{n:2,f:113},{n:3,f:132},{n:4,f:150},{n:5,f:169}];
+function hrZone(hr){
+  if(!hr) return 0;
+  var z=1; for(var i=0;i<HRZ.length;i++){ if(hr>=HRZ[i].f) z=HRZ[i].n; }
+  return z;
+}
+function zoneTag(hr){ var z=hrZone(hr); return z?("Z"+z):""; }
 function syncBlock(){
   return "```"+SYNC_TAG+"\n"+JSON.stringify({
     v:1, stamp:todayISO(),
@@ -1111,6 +1133,7 @@ function fuelPanel(p){
       {v:Math.round(kcal),k:"kcal burned"}
     ];
     if(hr) cells.push({v:hr,k:runs.length>1?"avg hr, all":"avg hr"});
+    if(hr) cells.push({v:"Z"+hrZone(hr),k:"zone"});
     if(gyms.length) cells.push({v:"🏋️ "+gyms.length,k:"gym session"+(gyms.length>1?"s":"")});
     h+='<div><div class="eyebrow" style="margin-bottom:6px">✅ What you actually did'
       +(runs.length>1?' · '+runs.length+' separate runs':'')+'</div>'
@@ -1123,7 +1146,7 @@ function fuelPanel(p){
           const bits=[r.km.toFixed(1)+'km', hm(r.secs/60)];
           if(r.km>0) bits.push(pace(r.secs/60,r.km)+'/km');
           if(r.vert) bits.push(Math.round(r.vert)+'m');
-          if(r.hr) bits.push(Math.round(r.hr)+'bpm');
+          if(r.hr) bits.push(Math.round(r.hr)+'bpm '+zoneTag(r.hr));
           return '<div style="display:flex;gap:8px;align-items:baseline;padding:6px 9px;'
             +'border:1px solid var(--line);border-radius:7px">'
             +'<b style="font-size:12px;opacity:.6">'+(i+1)+'</b>'
@@ -1135,7 +1158,7 @@ function fuelPanel(p){
     if(hr){
       const peak=Math.max.apply(null,hrs.map(r=>Math.round(r.hr)));
       const judge=runs.length>1?peak:hr;
-      const lead=runs.length>1?'Hardest run averaged '+judge+'bpm. ':'Average '+judge+'bpm. ';
+      const lead=(runs.length>1?'Hardest run averaged ':'Average ')+judge+'bpm, Zone '+hrZone(judge)+'. ';
       const ok=judge<=150, warn=judge>150&&judge<=156;
       h+='<p class="note'+(ok?"":(warn?" warn":" crit"))+'" style="margin-top:9px;font-size:13px">'
         +lead
@@ -1253,6 +1276,71 @@ function renderToday(){
     };
     ["input","change","blur"].forEach(ev=>ta.addEventListener(ev,commit));
   }
+
+  /* ---- tomorrow, plus the two days after it ---- */
+  (function(){
+    const base=parseISO(today).getTime();
+    const tom=PLAN.find(p=>p.d===iso(new Date(base+86400000)));
+    const card=$("#t-tomcard");
+    if(!tom){ card.hidden=true; return; }
+    card.hidden=false;
+    $("#t-tomday").textContent=fmtDay(tom.d)+" "+fmtDate(tom.d);
+    const st=STYPE[sType(tom)], bits=[];
+    if(tom.km>0) bits.push(tom.km+"km");
+    if(tom.vert) bits.push(tom.vert+"m vert");
+    if(tom.lift) bits.push(tom.lift+" lift");
+    if(tom.loc) bits.push(tom.loc);
+    let h='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
+      +'<span style="font-family:Archivo,sans-serif;font-weight:700;font-size:22px;letter-spacing:-.02em">'
+      +st.emo+' '+esc(tom.t)+'</span>'
+      +(bits.length?'<span class="small muted">'+esc(bits.join(" · "))+'</span>':'')+'</div>';
+    if(tom.note) h+='<p class="note" style="margin:0">'+esc(tom.note)+'</p>';
+    const rest=[];
+    for(let i=2;i<=3;i++){
+      const d2=PLAN.find(p=>p.d===iso(new Date(base+i*86400000)));
+      if(d2) rest.push(d2);
+    }
+    if(rest.length){
+      h+='<div style="border-top:1px solid var(--line-soft);padding-top:8px;display:flex;flex-direction:column;gap:5px">'
+        +'<div class="eyebrow" style="margin-bottom:1px">then</div>'
+        +rest.map(q=>'<div style="display:flex;gap:8px;align-items:baseline;font-size:13px">'
+          +'<b style="min-width:76px;color:var(--ink-2)">'+fmtDay(q.d)+' '+fmtDate(q.d)+'</b>'
+          +'<span style="flex:1">'+STYPE[sType(q)].emo+' '+esc(q.t)+'</span>'
+          +'<span class="small muted">'+(q.km>0?q.km+'km':'rest')+'</span></div>').join("")
+        +'</div>';
+    }
+    $("#t-tombody").innerHTML=h;
+  })();
+
+  /* ---- trip health rules, only while away ---- */
+  (function(){
+    const card=$("#t-tripcard");
+    if(!days.some(q=>q.trip)){ card.hidden=true; return; }
+    card.hidden=false;
+    const rules=[
+      ["Skin temp +0.5 or higher, two days running","walk only, do not run"],
+      ["Overnight respiration above 15","same. Normal for you is 12.8 to 13.5"],
+      ["Resting HR 57 or above, or HRV under 38","easy day at most"],
+      ["Any two of these together","rest, no negotiation"]
+    ];
+    $("#t-tripbody").innerHTML=
+      '<p class="small" style="margin:0 0 3px;color:var(--ink-2)">Skin temperature moved first before the August cough, two days before HRV and resting heart rate caught up. Check it before you decide to run.</p>'
+      +rules.map(r=>'<div style="display:flex;gap:7px;align-items:baseline;font-size:13px;line-height:1.5">'
+        +'<span style="color:var(--s-hills)">▸</span><span><b>'+esc(r[0])+':</b> '+esc(r[1])+'</span></div>').join("");
+  })();
+
+  /* ---- the one habit that matters, counted ---- */
+  (function(){
+    const el=$("#t-zonescore"), rs=[];
+    days.forEach(q=>{ ((act.detail&&act.detail[q.d])||[]).forEach(r=>{ if(r.isRun&&r.hr) rs.push(r); }); });
+    if(!rs.length){ el.innerHTML=""; return; }
+    const hot=rs.filter(r=>r.hr>=150).length;
+    el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;'
+      +'padding:9px 14px;border-bottom:1px solid var(--line-soft)">'
+      +'<span class="small" style="color:var(--ink-2)">Easy runs kept easy</span>'
+      +'<span class="pill '+(hot===0?"good":(hot<=1?"warn":"crit"))+'"><span class="dot"></span>'
+      +hot+' of '+rs.length+' in Zone 4</span></div>';
+  })();
 
   const planKm=weekPlanKm(w);
   $("#t-weeknums").textContent=act.km.toFixed(0)+"km of "+planKm+"km";
@@ -1589,7 +1677,7 @@ function weekReport(){
       const bits=[r.km.toFixed(1)+"km", hm(r.secs/60)];
       if(r.km>0) bits.push(pace(r.secs/60,r.km)+"/km");
       bits.push(Math.round(r.vert)+"m vert");
-      if(r.hr) bits.push(Math.round(r.hr)+"bpm avg");
+      if(r.hr) bits.push(Math.round(r.hr)+"bpm avg ("+zoneTag(r.hr)+")");
       if(r.maxhr) bits.push(Math.round(r.maxhr)+"bpm max");
       if(r.effort) bits.push("effort "+Math.round(r.effort));
       L.push("   run "+(i+1)+" of "+runs.length+", "+(r.name||"untitled")+": "+bits.join(", "));
@@ -1599,6 +1687,13 @@ function weekReport(){
   });
   L.push("");
   L.push("Runs logged this week: "+nRuns+(dbl?". Double days (run + gym): "+dbl:""));
+  (function(){
+    const rs=[];
+    days.forEach(q=>{ ((act.detail&&act.detail[q.d])||[]).forEach(r=>{ if(r.isRun&&r.hr) rs.push(r); }); });
+    if(!rs.length) return;
+    const hot=rs.filter(r=>r.hr>=150).length;
+    L.push("Easy-run discipline: "+hot+" of "+rs.length+" runs averaged Zone 4 (150bpm+). My zones: Z2 113-131, Z3 132-149, Z4 150-168.");
+  })();
   const secs=DATA.runs.reduce((a,b)=>a+b.secs,0), km=DATA.runs.reduce((a,b)=>a+b.km,0);
   const vert=DATA.runs.reduce((a,b)=>a+b.vert,0);
   const longest=DATA.runs.length?Math.max.apply(null,DATA.runs.map(r=>r.km)):0;
@@ -1726,10 +1821,13 @@ $("#t-apply").addEventListener("click",()=>{
   setTimeout(()=>{ $("#t-pastewrap").hidden=true; out.textContent=""; },4000);
 });
 
+$("#app-build").textContent="Waihaha to Whakaipo · "+BUILD;
 renderAll(); renderTrip(); renderRace();
 if(window.claude&&typeof window.claude.use==="function"){ setStatus("Reading Strava…"); initConnector(); }
 else { initOAuth(); }
 </script>
+
+<div style="text-align:center;padding:18px 12px 26px;font-size:11px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace" id="app-build"></div>
 
 </body>
 </html>
